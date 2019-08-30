@@ -14,6 +14,7 @@ repositories {
 }
 
 dependencies {
+	compile 'org.springframework.social:spring-social-twitter:+'
 	compile 'org.springframework.boot:spring-boot-starter-data-jpa'
 	compile 'org.springframework.boot:spring-boot-starter-web'
 	compile 'mysql:mysql-connector-java:8.0.11'
