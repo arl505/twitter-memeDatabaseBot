@@ -20,15 +20,14 @@ public class RequestTokenController {
   }
 
   @GetMapping("/requestToken")
-  public ResponseEntity requestTokenHandler() {
-    requestTokenProcessor.processRequest();
+  public ResponseEntity requestTokenHandler(@RequestParam("callback") String callback) {
+    requestTokenProcessor.processRequest(callback);
     return ResponseEntity.ok(null);
   }
 
   @GetMapping("/requestTokenCallback")
   public ResponseEntity requestTokenCallbackHandler(@RequestParam("oauth_token") String oauth_token,
       @RequestParam("oauth_verifier") String oauth_verifier) {
-    log.info("invoked");
     requestTokenProcessor.processCallback(oauth_token, oauth_verifier);
     return ResponseEntity.ok(null);
   }

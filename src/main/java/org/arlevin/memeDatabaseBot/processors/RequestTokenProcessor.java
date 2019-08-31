@@ -1,17 +1,12 @@
 package org.arlevin.memeDatabaseBot.processors;
 
 import java.io.IOException;
-import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
+import org.arlevin.memeDatabaseBot.utilities.TokenUtility;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.social.oauth1.AuthorizedRequestToken;
 import org.springframework.social.oauth1.OAuth1Template;
-import org.springframework.social.oauth1.OAuthToken;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 @Component
 @Slf4j
@@ -29,27 +24,37 @@ public class RequestTokenProcessor {
   @Value("${auth.access.tokenSecret}")
   private String accessTokenSecret;
 
-  public void processRequest() {
-    RestTemplate restTemplate = new RestTemplate();
+  public void processRequest(String callback) {
     OAuth1Template oAuth1Template = new OAuth1Template(consumerApiKey, consumerApiSecretKey,
-        "https://api.twitter.com/oauth/request_token", "https://api.twitter.com/oauth/authorize",
+        "https://api.twitter.com/oauth/request_token", "https://api.twitter.com/oauth/authenticate",
         "https://api.twitter.com/oauth/access_token");
-    OAuthToken token = oAuth1Template
-        .fetchRequestToken("https://arlevin.org:3003/api/memebot/v1/oauth/requestTokenCallback", null);
 
-    String authorizeUrl = oAuth1Template.buildAuthorizeUrl(token.getValue(), null);
+    TokenUtility.setRequestToken(oAuth1Template
+        .fetchRequestToken(callback,
+            null));
 
-    ClientHttpRequestFactory clientHttpRequestFactory = new SimpleClientHttpRequestFactory();
+    String authorizeUrl = oAuth1Template
+        .buildAuthorizeUrl(TokenUtility.getRequestToken().getValue(), null);
+    Runtime runtime = Runtime.getRuntime();
     try {
-      ClientHttpRequest request = clientHttpRequestFactory.createRequest(URI.create(authorizeUrl), HttpMethod.GET);
-      request.execute();
+      runtime.exec("open " + authorizeUrl);
     } catch (IOException e) {
-      log.error("Could not create authorize request: {}", e.toString());
+      log.error("Could not open url: {}", e.toString());
     }
-    restTemplate.getForEntity(authorizeUrl, String.class);
   }
 
   public void processCallback(String oauth_token, String oauth_verifier) {
     log.info("Received token ({}) and verifier ({})", oauth_token, oauth_verifier);
+    log.info("Requesting access token");
+
+    OAuth1Template oAuth1Template = new OAuth1Template(consumerApiKey, consumerApiSecretKey,
+        "https://api.twitter.com/oauth/request_token", "https://api.twitter.com/oauth/authorize",
+        "https://api.twitter.com/oauth/access_token");
+
+    AuthorizedRequestToken authorizedRequestToken = new AuthorizedRequestToken(
+        TokenUtility.getRequestToken(), oauth_verifier);
+    TokenUtility.setAccessToken(oAuth1Template.exchangeForAccessToken(authorizedRequestToken, null));
+    log.info("Received accessToken ({}) and accessTokenSecret ({})",
+        TokenUtility.getAccessToken().getValue(), TokenUtility.getAccessToken().getSecret());
   }
 }
