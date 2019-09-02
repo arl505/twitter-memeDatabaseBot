@@ -29,9 +29,7 @@ public class RequestTokenProcessor {
         "https://api.twitter.com/oauth/request_token", "https://api.twitter.com/oauth/authenticate",
         "https://api.twitter.com/oauth/access_token");
 
-    TokenUtility.setRequestToken(oAuth1Template
-        .fetchRequestToken(callback,
-            null));
+    TokenUtility.setRequestToken(oAuth1Template.fetchRequestToken(callback, null));
 
     String authorizeUrl = oAuth1Template
         .buildAuthorizeUrl(TokenUtility.getRequestToken().getValue(), null);
@@ -45,16 +43,19 @@ public class RequestTokenProcessor {
 
   public void processCallback(String oauth_token, String oauth_verifier) {
     log.info("Received token ({}) and verifier ({})", oauth_token, oauth_verifier);
-    log.info("Requesting access token");
+    if (TokenUtility.getRequestToken() != null) {
+      log.info("Requesting access token");
 
-    OAuth1Template oAuth1Template = new OAuth1Template(consumerApiKey, consumerApiSecretKey,
-        "https://api.twitter.com/oauth/request_token", "https://api.twitter.com/oauth/authorize",
-        "https://api.twitter.com/oauth/access_token");
+      OAuth1Template oAuth1Template = new OAuth1Template(consumerApiKey, consumerApiSecretKey,
+          "https://api.twitter.com/oauth/request_token", "https://api.twitter.com/oauth/authorize",
+          "https://api.twitter.com/oauth/access_token");
 
-    AuthorizedRequestToken authorizedRequestToken = new AuthorizedRequestToken(
-        TokenUtility.getRequestToken(), oauth_verifier);
-    TokenUtility.setAccessToken(oAuth1Template.exchangeForAccessToken(authorizedRequestToken, null));
-    log.info("Received accessToken ({}) and accessTokenSecret ({})",
-        TokenUtility.getAccessToken().getValue(), TokenUtility.getAccessToken().getSecret());
+      AuthorizedRequestToken authorizedRequestToken = new AuthorizedRequestToken(
+          TokenUtility.getRequestToken(), oauth_verifier);
+      TokenUtility
+          .setAccessToken(oAuth1Template.exchangeForAccessToken(authorizedRequestToken, null));
+      log.info("Received accessToken ({}) and accessTokenSecret ({})",
+          TokenUtility.getAccessToken().getValue(), TokenUtility.getAccessToken().getSecret());
+    }
   }
 }
