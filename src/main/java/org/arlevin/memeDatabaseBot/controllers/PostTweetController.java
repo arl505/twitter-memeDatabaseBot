@@ -20,8 +20,7 @@ public class PostTweetController {
   }
 
   @PostMapping("/postTweet")
-  public ResponseEntity postTweetEndpoint(@RequestBody String tweetText){
-    postTweetService.postTweet(tweetText);
-    return ResponseEntity.ok(null);
+  public ResponseEntity<String> postTweetEndpoint(@RequestBody String tweetText){
+    return ResponseEntity.ok(postTweetService.postTweet(tweetText));
   }
 }

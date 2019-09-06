@@ -34,12 +34,13 @@ public class SignatureUtility {
   @Value("${auth.access.tokenSecret}")
   private String accessTokenSecret;
 
-  public String calculateStatusUpdateSignature(String status, String timestamp, String nonce) {
+  public String calculateStatusUpdateSignature(String url, String method, String status, String timestamp, String nonce) {
     String parameterString = generateParameterString(status, timestamp, nonce);
 
     String signatureBaseString =
-        "POST&"
-        + encode("https://api.twitter.com/1.1/statuses/update.json")
+        method
+        + "&"
+        + encode(url)
         + "&"
         + encode(parameterString);
 
@@ -56,8 +57,6 @@ public class SignatureUtility {
   }
 
   private String generateParameterString(String status, String timestamp, String nonce) {
-    String _includeEntitiesKey = encode("include_entities");
-    String _statusKey = encode("status");
     String _consumerKeyKey = encode("oauth_consumer_key");
     String _nonceKey = encode("oauth_nonce");
     String _signatureMethodKey = encode("oauth_signature_method");
@@ -65,34 +64,32 @@ public class SignatureUtility {
     String _tokenKey = encode("oauth_token");
     String _oauthVersionKey = encode("oauth_version");
 
-    String _includeEntities = encode("true");
-    String _status = encode(status);
-    String _consumerKey = encode(consumerApiKey);
-    String _nonce = encode(nonce);
-    String _signatureMethod = encode("HMAC-SHA1");
-    String _timestamp = encode(timestamp);
-    String _token = encode(accessToken);
-    String _oauthVersion = encode("1.0");
-
     Map<String, String> keyValuePairs = new HashMap<>();
-    keyValuePairs.put(_includeEntitiesKey, _includeEntities);
-    keyValuePairs.put(_statusKey, _status);
-    keyValuePairs.put(_consumerKeyKey, _consumerKey);
-    keyValuePairs.put(_nonceKey, _nonce);
-    keyValuePairs.put(_signatureMethodKey, _signatureMethod);
-    keyValuePairs.put(_timestampKey, _timestamp);
-    keyValuePairs.put(_tokenKey, _token);
-    keyValuePairs.put(_oauthVersionKey, _oauthVersion);
+
+    keyValuePairs.put(_consumerKeyKey, encode(consumerApiKey));
+    keyValuePairs.put(_nonceKey, encode(nonce));
+    keyValuePairs.put(_signatureMethodKey, encode("HMAC-SHA1"));
+    keyValuePairs.put(_timestampKey, encode(timestamp));
+    keyValuePairs.put(_tokenKey, encode(accessToken));
+    keyValuePairs.put(_oauthVersionKey, encode("1.0"));
 
     List<String> encodedKeys = new ArrayList<>();
-    encodedKeys.add(_includeEntitiesKey);
-    encodedKeys.add(_statusKey);
+
     encodedKeys.add(_consumerKeyKey);
     encodedKeys.add(_nonceKey);
     encodedKeys.add(_signatureMethodKey);
     encodedKeys.add(_timestampKey);
     encodedKeys.add(_tokenKey);
     encodedKeys.add(_oauthVersionKey);
+
+    if(status != null) {
+      String _includeEntitiesKey = encode("include_entities");
+      String _statusKey = encode("status");
+      keyValuePairs.put(_includeEntitiesKey, encode("true"));
+      keyValuePairs.put(_statusKey, encode(status));
+      encodedKeys.add(_includeEntitiesKey);
+      encodedKeys.add(_statusKey);
+    }
 
     Collections.sort(encodedKeys);
 
