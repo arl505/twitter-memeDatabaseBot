@@ -28,6 +28,12 @@ public class SignatureUtility {
   @Value("${auth.consumer.apiSecretKey}")
   private String consumerApiSecretKey;
 
+  @Value("${auth.access.token}")
+  private String accessToken;
+
+  @Value("${auth.access.tokenSecret}")
+  private String accessTokenSecret;
+
   public String calculateStatusUpdateSignature(String status, String timestamp, String nonce) {
     String parameterString = generateParameterString(status, timestamp, nonce);
 
@@ -37,7 +43,7 @@ public class SignatureUtility {
         + "&"
         + encode(parameterString);
 
-    String signingKey = consumerApiSecretKey + '&' + TokenUtility.getAccessToken().getSecret();
+    String signingKey = consumerApiSecretKey + '&' + accessTokenSecret;
 
     String signature;
     try {
@@ -65,7 +71,7 @@ public class SignatureUtility {
     String _nonce = encode(nonce);
     String _signatureMethod = encode("HMAC-SHA1");
     String _timestamp = encode(timestamp);
-    String _token = encode(TokenUtility.getAccessToken().getValue());
+    String _token = encode(accessToken);
     String _oauthVersion = encode("1.0");
 
     Map<String, String> keyValuePairs = new HashMap<>();
