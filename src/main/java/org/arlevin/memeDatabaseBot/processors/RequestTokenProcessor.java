@@ -6,6 +6,7 @@ import org.arlevin.memeDatabaseBot.utilities.TokenUtility;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.social.oauth1.AuthorizedRequestToken;
 import org.springframework.social.oauth1.OAuth1Template;
+import org.springframework.social.oauth1.OAuthToken;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,18 +19,13 @@ public class RequestTokenProcessor {
   @Value("${auth.consumer.apiSecretKey}")
   private String consumerApiSecretKey;
 
-  @Value("${auth.access.token}")
-  private String accessToken;
-
-  @Value("${auth.access.tokenSecret}")
-  private String accessTokenSecret;
-
   public void processRequest(String callback) {
     OAuth1Template oAuth1Template = new OAuth1Template(consumerApiKey, consumerApiSecretKey,
         "https://api.twitter.com/oauth/request_token", "https://api.twitter.com/oauth/authenticate",
         "https://api.twitter.com/oauth/access_token");
 
-    TokenUtility.setRequestToken(oAuth1Template.fetchRequestToken(callback, null));
+    OAuthToken requestToken = oAuth1Template.fetchRequestToken(callback, null);
+    TokenUtility.setRequestToken(requestToken);
 
     String authorizeUrl = oAuth1Template
         .buildAuthorizeUrl(TokenUtility.getRequestToken().getValue(), null);
@@ -52,8 +48,9 @@ public class RequestTokenProcessor {
 
       AuthorizedRequestToken authorizedRequestToken = new AuthorizedRequestToken(
           TokenUtility.getRequestToken(), oauth_verifier);
-      TokenUtility
-          .setAccessToken(oAuth1Template.exchangeForAccessToken(authorizedRequestToken, null));
+
+      OAuthToken accessToken = oAuth1Template.exchangeForAccessToken(authorizedRequestToken, null);
+      TokenUtility.setAccessToken(accessToken);
       log.info("Received accessToken ({}) and accessTokenSecret ({})",
           TokenUtility.getAccessToken().getValue(), TokenUtility.getAccessToken().getSecret());
     }
