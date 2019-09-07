@@ -36,7 +36,7 @@ public class MentionsProcessor {
         String description = getDescription(tweet);
         String userId = tweet.getJSONObject("user").getString("id_str");
 
-        JSONArray medias = tweet.getJSONObject("entities").getJSONArray("media");
+        JSONArray medias = tweet.getJSONObject("extended_entities").getJSONArray("media");
         for(int i = 0; i < medias.length(); i++) {
           JSONObject media = medias.getJSONObject(i);
           String twitterMediaUrl = media.getString("media_url_https");
@@ -55,6 +55,7 @@ public class MentionsProcessor {
           userMemesRepository.save(userMemesEntity);
 
           // use the sequence number to save media to filesystem
+
         }
       }
     }
