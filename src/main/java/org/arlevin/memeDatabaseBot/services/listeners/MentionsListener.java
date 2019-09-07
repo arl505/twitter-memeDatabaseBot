@@ -1,10 +1,17 @@
 package org.arlevin.memeDatabaseBot.services.listeners;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.arlevin.memeDatabaseBot.domain.ProcessedMentionsEntity;
+import org.arlevin.memeDatabaseBot.processors.MentionsProcessor;
+import org.arlevin.memeDatabaseBot.repositories.ProcessedMentionsRepository;
 import org.arlevin.memeDatabaseBot.utilities.SignatureUtility;
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -24,9 +31,14 @@ public class MentionsListener {
   @Value("${auth.access.token}")
   private String accessToken;
 
+  private final ProcessedMentionsRepository processedMentionsRepository;
+  private final MentionsProcessor mentionsProcessor;
   private final SignatureUtility signatureUtility;
 
-  public MentionsListener(SignatureUtility signatureUtility) {
+  public MentionsListener(ProcessedMentionsRepository processedMentionsRepository,
+      MentionsProcessor mentionsProcessor, SignatureUtility signatureUtility) {
+    this.processedMentionsRepository = processedMentionsRepository;
+    this.mentionsProcessor = mentionsProcessor;
     this.signatureUtility = signatureUtility;
   }
 
@@ -38,7 +50,8 @@ public class MentionsListener {
     String nonce = RandomStringUtils.randomAlphanumeric(42);
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
-    String signature = signatureUtility.calculateStatusUpdateSignature(url, "GET", null, timestamp, nonce);
+    String signature = signatureUtility
+        .calculateStatusUpdateSignature(url, "GET", null, timestamp, nonce);
 
     HttpHeaders httpHeaders = new HttpHeaders();
     String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +
@@ -51,9 +64,30 @@ public class MentionsListener {
     httpHeaders.add("Authorization", authHeaderText);
     HttpEntity entity = new HttpEntity(httpHeaders);
 
-    ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    ResponseEntity<String> responseEntity = restTemplate
+        .exchange(url, HttpMethod.GET, entity, String.class);
     JSONArray response = new JSONArray(responseEntity.getBody());
 
-    // TODO: process mentions
+    List<JSONObject> newMentions = new ArrayList<>();
+    for (int i = 0; i < response.length(); i++) {
+      JSONObject tweet = response.getJSONObject(i);
+
+      if (isTweetAlreadyProcessed(tweet)) {
+        if (newMentions.isEmpty()) {
+          return;
+        } else {
+          mentionsProcessor.process(newMentions);
+          return;
+        }
+      }
+      newMentions.add(tweet);
+    }
+    mentionsProcessor.process(newMentions);
+  }
+
+  private boolean isTweetAlreadyProcessed(JSONObject tweet) {
+    Optional<ProcessedMentionsEntity> alreadyProcessedMention = processedMentionsRepository
+        .getAllByTweetId(tweet.getString("id_str"));
+    return alreadyProcessedMention.isPresent();
   }
 }
