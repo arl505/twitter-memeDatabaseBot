@@ -79,8 +79,8 @@ public class MentionsProcessor {
 
           File file = new File(fileName);
           file.getParentFile().mkdirs();
-          FileWriter writer = null;
           try {
+            FileWriter writer = new FileWriter(file);
             writer.write("test");
             writer.close();
 
