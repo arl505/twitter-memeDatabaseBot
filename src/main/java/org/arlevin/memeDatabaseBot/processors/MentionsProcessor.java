@@ -1,8 +1,12 @@
 package org.arlevin.memeDatabaseBot.processors;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.util.List;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +54,24 @@ public class MentionsProcessor {
           JSONObject media = medias.getJSONObject(i);
           String twitterMediaUrl = media.getString("media_url_https");
 
+          // store the image using methodology found here:
+          // https://serverfault.com/questions/95444/storing-a-million-images-in-the-filesystem:
+          /*
+          First pad your sequence number with leading zeroes until you have at least 12 digit string.
+            This is the name for your file. You may want to add a suffix:
+                         12345 -> 000000012345.jpg
+          Then split the string to 2 or 3 character blocks where each block denotes a directory level.
+            Have a fixed number of directory levels (for example 3):
+                          000000012345 -> 000/000/012
+          Store the file to under generated directory:
+              Thus the full path and file filename for file with sequence id 123 is
+                          000/000/012/00000000012345.jpg
+              For file with sequence id 12345678901234 the path would be
+                          123/456/789/12345678901234.jpg
+           */
+
+          // increment sequence by inserting new record
+          // delete all records less than new sequence number (should only be 1 record)
           SequenceNumberEntity sequenceNumberEntity = sequenceNumberRepository.save(new SequenceNumberEntity());
           sequenceNumberRepository.deleteLessThanHighNum(sequenceNumberEntity.getSequenceNumber());
           String sequenceNumber = sequenceNumberEntity.getSequenceNumber().toString();
@@ -77,16 +99,7 @@ public class MentionsProcessor {
               + sequenceNumber
               + twitterMediaUrl.substring(twitterMediaUrl.lastIndexOf('.'));
 
-          File file = new File(fileName);
-          file.getParentFile().mkdirs();
-          try {
-            FileWriter writer = new FileWriter(file);
-            writer.write("test");
-            writer.close();
-
-          } catch (IOException e) {
-            log.error("Could not open fileWriter: {}", e.toString());
-          }
+          downloadFile(twitterMediaUrl, fileName);
         }
       }
     }
@@ -110,5 +123,23 @@ public class MentionsProcessor {
     tweetText = tweetText.replaceAll("\\s*https://t.co/\\S+.*", "");
     tweetText = tweetText.replaceFirst("\\s+", "");
     return tweetText;
+  }
+
+  private void downloadFile(String url, String fileName) {
+    File file = new File(fileName);
+    file.getParentFile().mkdirs();
+
+    try {
+      URL urlStream = new URL(url);
+      ReadableByteChannel readableByteChannel = Channels.newChannel(urlStream.openStream());
+      FileOutputStream fileOutputStream = new FileOutputStream(fileName);
+      FileChannel fileChannel = fileOutputStream.getChannel();
+      fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+      fileOutputStream.close();
+      fileChannel.close();
+      readableByteChannel.close();
+    } catch (IOException e) {
+      log.error("Could not open twitter url ({}): {}", url, e.toString());
+    }
   }
 }
