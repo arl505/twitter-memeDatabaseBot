@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.services.listeners;
+package org.arlevin.memeDatabaseBot.listeners;
 
 import java.util.ArrayList;
 import java.util.Date;
