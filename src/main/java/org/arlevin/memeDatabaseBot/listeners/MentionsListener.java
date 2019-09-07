@@ -42,7 +42,7 @@ public class MentionsListener {
     this.signatureUtility = signatureUtility;
   }
 
-  @Scheduled(fixedRate = 30000)
+  @Scheduled(fixedRate = 15000)
   public void checkForNewMentions() {
     RestTemplate restTemplate = new RestTemplate();
     String url = "https://api.twitter.com/1.1/statuses/mentions_timeline.json";
