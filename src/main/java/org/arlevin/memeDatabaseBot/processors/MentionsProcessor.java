@@ -1,7 +1,11 @@
 package org.arlevin.memeDatabaseBot.processors;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 import javax.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memeDatabaseBot.domain.ProcessedMentionsEntity;
 import org.arlevin.memeDatabaseBot.domain.SequenceNumberEntity;
 import org.arlevin.memeDatabaseBot.domain.UserMemesEntity;
@@ -10,10 +14,15 @@ import org.arlevin.memeDatabaseBot.repositories.ProcessedMentionsRepository;
 import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class MentionsProcessor {
+
+  @Value("${pathPrefix}")
+  private String pathPrefix;
 
   private final ProcessedMentionsRepository processedMentionsRepository;
   private final SequenceNumberRepository sequenceNumberRepository;
@@ -42,7 +51,7 @@ public class MentionsProcessor {
           String twitterMediaUrl = media.getString("media_url_https");
 
           SequenceNumberEntity sequenceNumberEntity = sequenceNumberRepository.save(new SequenceNumberEntity());
-          sequenceNumberRepository.deleteBySequenceNumberLessThan(sequenceNumberEntity.getSequenceNumber());
+          sequenceNumberRepository.deleteLessThanHighNum(sequenceNumberEntity.getSequenceNumber());
           String sequenceNumber = sequenceNumberEntity.getSequenceNumber().toString();
 
           UserMemesEntity userMemesEntity = UserMemesEntity.builder()
@@ -54,8 +63,30 @@ public class MentionsProcessor {
 
           userMemesRepository.save(userMemesEntity);
 
-          // use the sequence number to save media to filesystem
+          StringBuilder stringBuilder = new StringBuilder();
+          for(int j = 0; j < 12 - sequenceNumber.length(); j++) {
+            stringBuilder.append("0");
+          }
+          sequenceNumber = stringBuilder.toString() + sequenceNumber;
 
+          String fileName = pathPrefix + '/'
+              + sequenceNumber.substring(0, 3) + '/'
+              + sequenceNumber.substring(3, 6) + '/'
+              + sequenceNumber.substring(6, 9) + '/'
+              + sequenceNumber.substring(9, 12) + '/'
+              + sequenceNumber
+              + twitterMediaUrl.substring(twitterMediaUrl.lastIndexOf('.'));
+
+          File file = new File(fileName);
+          file.getParentFile().mkdirs();
+          FileWriter writer = null;
+          try {
+            writer.write("test");
+            writer.close();
+
+          } catch (IOException e) {
+            log.error("Could not open fileWriter: {}", e.toString());
+          }
         }
       }
     }
