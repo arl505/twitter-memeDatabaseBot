@@ -34,15 +34,16 @@ public class SignatureUtility {
   @Value("${auth.access.tokenSecret}")
   private String accessTokenSecret;
 
-  public String calculateStatusUpdateSignature(String url, String method, String status, String timestamp, String nonce) {
-    String parameterString = generateParameterString(status, timestamp, nonce);
+  public String calculateStatusUpdateSignature(String url, String method, String status,
+      String timestamp, String nonce, boolean includeEntities, Map<String, String> params) {
+    String parameterString = generateParameterString(status, timestamp, nonce, includeEntities, params);
 
     String signatureBaseString =
         method
-        + "&"
-        + encode(url)
-        + "&"
-        + encode(parameterString);
+            + "&"
+            + encode(url)
+            + "&"
+            + encode(parameterString);
 
     String signingKey = consumerApiSecretKey + '&' + accessTokenSecret;
 
@@ -56,7 +57,8 @@ public class SignatureUtility {
     return signature;
   }
 
-  private String generateParameterString(String status, String timestamp, String nonce) {
+  private String generateParameterString(String status, String timestamp, String nonce,
+      boolean includeEntities, Map<String, String> params) {
     String _consumerKeyKey = encode("oauth_consumer_key");
     String _nonceKey = encode("oauth_nonce");
     String _signatureMethodKey = encode("oauth_signature_method");
@@ -82,26 +84,34 @@ public class SignatureUtility {
     encodedKeys.add(_tokenKey);
     encodedKeys.add(_oauthVersionKey);
 
-    if(status != null) {
-      String _includeEntitiesKey = encode("include_entities");
+    if (status != null) {
       String _statusKey = encode("status");
-      keyValuePairs.put(_includeEntitiesKey, encode("true"));
       keyValuePairs.put(_statusKey, encode(status));
-      encodedKeys.add(_includeEntitiesKey);
       encodedKeys.add(_statusKey);
     }
+
+    if (includeEntities) {
+      String _includeEntitiesKey = encode("include_entities");
+      keyValuePairs.put(_includeEntitiesKey, encode("true"));
+      encodedKeys.add(_includeEntitiesKey);
+    }
+
+    params.forEach((key, value) -> {
+      keyValuePairs.put(encode(key), encode(value));
+      encodedKeys.add(encode(key));
+    });
 
     Collections.sort(encodedKeys);
 
     String parameterString = "";
 
-    for(int i = 0; i < encodedKeys.size(); i++) {
+    for (int i = 0; i < encodedKeys.size(); i++) {
       String key = encodedKeys.get(i);
 
       parameterString = parameterString.concat(key)
           .concat("=")
           .concat(keyValuePairs.get(key));
-      if(i != encodedKeys.size()-1) {
+      if (i != encodedKeys.size() - 1) {
         parameterString = parameterString.concat("&");
       }
     }
@@ -151,8 +161,7 @@ public class SignatureUtility {
   }
 
   private static String calculateRFC2104HMAC(String data, String key)
-      throws NoSuchAlgorithmException, InvalidKeyException
-  {
+      throws NoSuchAlgorithmException, InvalidKeyException {
     SecretKeySpec signingKey = new SecretKeySpec(key.getBytes(), "HmacSHA1");
     Mac mac = Mac.getInstance("HmacSHA1");
     mac.init(signingKey);

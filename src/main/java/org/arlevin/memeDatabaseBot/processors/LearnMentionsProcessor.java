@@ -34,7 +34,18 @@ public class LearnMentionsProcessor {
     JSONArray medias = tweet.getJSONObject("extended_entities").getJSONArray("media");
     for (int i = 0; i < medias.length(); i++) {
       JSONObject media = medias.getJSONObject(i);
-      String twitterMediaUrl = media.getString("media_url_https");
+
+      String twitterMediaUrl;
+      if (media.getString("type").equals("video")) {
+        twitterMediaUrl = media
+            .getJSONObject("video_info")
+            .getJSONArray("variants")
+            .getJSONObject(1)
+            .getString("url");
+      } else {
+        twitterMediaUrl = media.getString("media_url_https");
+      }
+
       String sequenceNumber = mediaFileUtility.getSequenceNumber();
 
       UserMemesEntity userMemesEntity = UserMemesEntity.builder()
@@ -47,6 +58,9 @@ public class LearnMentionsProcessor {
       userMemesRepository.save(userMemesEntity);
 
       String fileSuffix = twitterMediaUrl.substring(twitterMediaUrl.lastIndexOf('.'));
+      if (fileSuffix.contains("?")) {
+        fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
+      }
       downloadFile(twitterMediaUrl, mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
     }
   }

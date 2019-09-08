@@ -21,6 +21,7 @@ dependencies {
 	compile 'org.apache.commons:commons-lang3:+'
 	compile 'commons-codec:commons-codec:+'
 	compile 'org.json:json:+'
+	compile 'oauth.signpost:signpost-commonshttp4:+'
 	compileOnly 'org.projectlombok:lombok:1.18.8'
 
 	annotationProcessor 'org.projectlombok:lombok:1.18.8'

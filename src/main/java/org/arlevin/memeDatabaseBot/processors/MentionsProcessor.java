@@ -34,6 +34,7 @@ public class MentionsProcessor {
 
       String tweetText = tweet.getString("text");
       tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("@memedatabasebot"));
+
       if (isValidLearnMention(tweetText)) {
         learnMentionsProcessor.process(tweet, getLearnDescription(tweetText));
       } else if (isValidPostMention(tweetText)) {

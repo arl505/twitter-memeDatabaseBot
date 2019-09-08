@@ -2,6 +2,7 @@ package org.arlevin.memeDatabaseBot.listeners;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +52,7 @@ public class MentionsListener {
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
     String signature = signatureUtility
-        .calculateStatusUpdateSignature(url, "GET", null, timestamp, nonce);
+        .calculateStatusUpdateSignature(url, "GET", null, timestamp, nonce, false, new HashMap<>());
 
     HttpHeaders httpHeaders = new HttpHeaders();
     String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +

@@ -1,6 +1,7 @@
 package org.arlevin.memeDatabaseBot.services;
 
 import java.util.Date;
+import java.util.HashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.arlevin.memeDatabaseBot.utilities.SignatureUtility;
@@ -35,7 +36,7 @@ public class PostTweetService {
 
     String url = "https://api.twitter.com/1.1/statuses/update.json?include_entities=true";
 
-    String signature = signatureUtility.calculateStatusUpdateSignature(url, "POST", tweetText, timestamp, nonce);
+    String signature = signatureUtility.calculateStatusUpdateSignature(url, "POST", tweetText, timestamp, nonce, true, new HashMap<>());
 
     HttpHeaders httpHeaders = new HttpHeaders();
     httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
