@@ -32,10 +32,12 @@ public class MentionsProcessor {
     for (JSONObject tweet : tweets) {
       addMentionRecordToDb(tweet);
 
-      if (isValidLearnMention(tweet)) {
-        learnMentionsProcessor.process(tweet, getLearnDescription(tweet));
-      } else if (isValidPostMention(tweet)) {
-        postMentionsProcessor.process(tweet, getPostDescription(tweet));
+      String tweetText = tweet.getString("text");
+      tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("@memedatabasebot"));
+      if (isValidLearnMention(tweetText)) {
+        learnMentionsProcessor.process(tweet, getLearnDescription(tweetText));
+      } else if (isValidPostMention(tweetText)) {
+        postMentionsProcessor.process(tweet, getPostDescription(tweetText));
       } else {
         log.info("Received an invalid mention: {}", tweet.getString("text"));
       }
@@ -49,17 +51,15 @@ public class MentionsProcessor {
     processedMentionsRepository.save(processedMentionsEntity);
   }
 
-  private boolean isValidLearnMention(JSONObject tweet) {
-    return tweet.getString("text")
-        .matches("(?i:@memeDatabaseBot\\s+learn\\s*\\S+.*https://t.co/\\S+.*)");
+  private boolean isValidLearnMention(String tweetText) {
+    return tweetText.matches("(?i:@memeDatabaseBot\\s+learn\\s*\\S+.*https://t.co/\\S+.*)");
   }
 
-  private boolean isValidPostMention(JSONObject tweet) {
-    return tweet.getString("text").matches("(?i:@memeDatabaseBot\\s+post\\s*\\S+.*)");
+  private boolean isValidPostMention(String tweetText) {
+    return tweetText.matches("(?i:@memeDatabaseBot\\s+post\\s*\\S+.*)");
   }
 
-  private String getLearnDescription(JSONObject tweet) {
-    String tweetText = tweet.getString("text");
+  private String getLearnDescription(String tweetText) {
     tweetText = tweetText.substring(tweetText.indexOf("learn") + 5);
     tweetText = tweetText.replaceAll("(?i:\\s*https://t.co/\\S+.*)", "");
     if(tweetText.matches("\\s+\\S+.*")) {
@@ -68,8 +68,7 @@ public class MentionsProcessor {
     return tweetText;
   }
 
-  private String getPostDescription(JSONObject tweet) {
-    String tweetText = tweet.getString("text");
+  private String getPostDescription(String tweetText) {
     tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("post") + 4);
     if(tweetText.matches("\\s+\\S+.*")) {
       tweetText = tweetText.replaceFirst("\\s+", "");
