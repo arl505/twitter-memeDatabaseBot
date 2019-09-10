@@ -1,7 +1,9 @@
 package org.arlevin.memeDatabaseBot.services;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -16,7 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
@@ -36,7 +40,7 @@ public class TwitterMediaUploadService {
 
   @Autowired
   public TwitterMediaUploadService(
-      SignatureUtility signatureUtility){
+      SignatureUtility signatureUtility) {
     this.signatureUtility = signatureUtility;
   }
 
@@ -45,12 +49,12 @@ public class TwitterMediaUploadService {
   }
 
   private void initUpload(String fileName) {
-    String url = "https://upload.twitter.com/1.1/media/upload.json";
+    String url = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true";
     String nonce = RandomStringUtils.randomAlphanumeric(42);
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
     File file = new File(fileName);
-    Long fileBytesNum = file.length();
+    long fileBytesNum = file.length();
 
     String mimeType = URLConnection.guessContentTypeFromName(file.getName());
     String type = mimeType.split("/")[0];
@@ -64,36 +68,42 @@ public class TwitterMediaUploadService {
         media_category = "TweetImage";
       }
     }
+    try {
+      Map<String, String> requestParamsMap = new HashMap();
 
-    Map<String, String> params = new HashMap<>();
-    params.put("command", "INIT");
-    params.put("total_bytes", fileBytesNum.toString());
-    params.put("media_type", mimeType);
-    params.put("media_category", media_category);
+      requestParamsMap.put("include_entities", "true");
+      requestParamsMap.put("command", "INIT");
+      requestParamsMap.put("total_bytes", String.valueOf(fileBytesNum));
+      requestParamsMap.put("media_type", mimeType);
+      requestParamsMap.put("media_category", media_category);
+      String signature = signatureUtility
+          .calculateStatusUpdateSignature("https://upload.twitter.com/1.1/media/upload.json", "POST", null, timestamp, nonce, false,
+              requestParamsMap);
 
-    String signature = signatureUtility
-        .calculateStatusUpdateSignature(url, "POST", null, timestamp, nonce, false, new HashMap<>());
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+      String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +
+          "oauth_nonce=\"" + nonce + "\", " +
+          "oauth_signature=\"" + signature + "\", " +
+          "oauth_signature_method=\"HMAC-SHA1\", " +
+          "oauth_timestamp=\"" + timestamp + "\", " +
+          "oauth_token=\"" + accessToken + "\", " +
+          "oauth_version=\"1.0\"";
+      headers.add("Authorization", authHeaderText);
 
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-    String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +
-        "oauth_nonce=\"" + nonce + "\", " +
-        "oauth_signature=\"" + signature + "\", " +
-        "oauth_signature_method=\"HMAC-SHA1\", " +
-        "oauth_timestamp=\"" + timestamp + "\", " +
-        "oauth_token=\"" + accessToken + "\", " +
-        "oauth_version=\"1.0\"";
-    headers.add("Authorization", authHeaderText);
+      String requestString = "command=INIT&total_bytes=" + fileBytesNum + "&media_type="
+          + URLEncoder.encode(mimeType, "UTF-8") + "&media_category=" + media_category;
+      HttpEntity request = new HttpEntity(requestString, headers);
 
-    HttpEntity request = new HttpEntity(new JSONObject(params), headers);
+      RestTemplate restTemplate = new RestTemplate();
 
-    RestTemplate restTemplate = new RestTemplate();
-      List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
-      MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-      converter.setSupportedMediaTypes(Collections.singletonList(MediaType.APPLICATION_FORM_URLENCODED));
-      messageConverters.add(converter);
-      restTemplate.setMessageConverters(messageConverters);
+      ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+      String responseString = responseEntity.getBody();
+      JSONObject response = new JSONObject(responseString);
 
-    restTemplate.postForEntity(url, request, JSONObject.class).getBody();
+      int i = 0;
+    } catch (Exception e) {
+      log.error("Couldn't encode request params: {}", e.toString());
+    }
   }
 }
