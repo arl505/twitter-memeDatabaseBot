@@ -35,8 +35,8 @@ public class SignatureUtility {
   private String accessTokenSecret;
 
   public String calculateStatusUpdateSignature(String url, String method, String timestamp,
-      String nonce, Map<String, String> params, byte[] mediaData) {
-    String parameterString = generateParameterString(timestamp, nonce, params, mediaData);
+      String nonce, Map<String, String> params) {
+    String parameterString = generateParameterString(timestamp, nonce, params);
 
     String signatureBaseString =
         method
@@ -57,8 +57,8 @@ public class SignatureUtility {
     return signature;
   }
 
-  private String generateParameterString(String timestamp, String nonce, Map<String, String> params,
-      byte[] mediaData) {
+  private String generateParameterString(String timestamp, String nonce,
+      Map<String, String> params) {
     String _consumerKeyKey = encode("oauth_consumer_key");
     String _nonceKey = encode("oauth_nonce");
     String _signatureMethodKey = encode("oauth_signature_method");
@@ -89,27 +89,17 @@ public class SignatureUtility {
       encodedKeys.add(encode(key));
     });
 
-    if(mediaData != null) {
-      encodedKeys.add(encode("media_id"));
-    }
-
     Collections.sort(encodedKeys);
 
     String parameterString = "";
 
     for (int i = 0; i < encodedKeys.size(); i++) {
       String key = encodedKeys.get(i);
-      if(key.equals("media_data")) {
-        parameterString = parameterString.concat(key)
-            .concat("=")
-            .concat(new String(mediaData));
-      } else {
-        parameterString = parameterString.concat(key)
-            .concat("=")
-            .concat(keyValuePairs.get(key));
-        if (i != encodedKeys.size() - 1) {
-          parameterString = parameterString.concat("&");
-        }
+      parameterString = parameterString.concat(key)
+          .concat("=")
+          .concat(keyValuePairs.get(key));
+      if (i != encodedKeys.size() - 1) {
+        parameterString = parameterString.concat("&");
       }
     }
 

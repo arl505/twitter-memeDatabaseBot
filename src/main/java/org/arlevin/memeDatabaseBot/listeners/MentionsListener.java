@@ -52,7 +52,7 @@ public class MentionsListener {
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
     String signature = signatureUtility
-        .calculateStatusUpdateSignature(url, "GET", timestamp, nonce, new HashMap<>(), null);
+        .calculateStatusUpdateSignature(url, "GET", timestamp, nonce, new HashMap<>());
 
     HttpHeaders httpHeaders = new HttpHeaders();
     String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +

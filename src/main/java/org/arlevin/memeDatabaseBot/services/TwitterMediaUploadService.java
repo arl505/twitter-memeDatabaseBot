@@ -25,6 +25,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -56,8 +58,12 @@ public class TwitterMediaUploadService {
 
     File file = new File(fileName);
     long fileBytesNum = file.length();
-    String mimeType = URLConnection.guessContentTypeFromName(file.getName());
-
+    String mimeType;
+    if(fileName.substring(fileName.indexOf('.')).equals(".mp4")) {
+      mimeType = "video/mp4";
+    } else {
+      mimeType = URLConnection.guessContentTypeFromName(file.getName());
+    }
     String type = mimeType.split("/")[0];
     String media_category;
     if (type.equals("video")) {
@@ -79,7 +85,7 @@ public class TwitterMediaUploadService {
     requestParamsMap.put("media_category", media_category);
     String signature = signatureUtility
         .calculateStatusUpdateSignature("https://upload.twitter.com/1.1/media/upload.json", "POST",
-            timestamp, nonce, requestParamsMap, null);
+            timestamp, nonce, requestParamsMap);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -118,16 +124,40 @@ public class TwitterMediaUploadService {
 
       Double fileSizeMB = fileBytes.length / 1000000D;
       fileSizeMB = ceil(fileSizeMB);
-      for (Long i = 0L; i < fileSizeMB; i++) {
-        if (fileSizeMB == 1L || true) {
-          // upload 2 chunks
-          byte[] bytesChunk = Arrays.copyOfRange(fileBytes, 0, fileBytes.length / 2);
+      int from;
+      int to;
+
+      // upload 1 chunk per MB
+      // for a file say 8000424 bytes, this will round up to 9 MB,
+      // upload the file 1/9th at a time: nine requests each with a 1/9th chunk of the file
+      // if the file is < 1 MB, upload in 2 chunks each 1/2 of the toal file
+      for (int i = 0; i < fileSizeMB.intValue(); i++) {
+        if (fileSizeMB == 1L) {
+          from = 0;
+          to = fileBytes.length / 2;
+          byte[] bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
+          log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
           sendAppendRequest(mediaId, 0, Base64.getEncoder().encode(bytesChunk));
 
-          bytesChunk = Arrays.copyOfRange(fileBytes,fileBytes.length / 2, fileBytes.length);
+          from = fileBytes.length / 2;
+          to = fileBytes.length + 1;
+          log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
+          bytesChunk = Arrays.copyOfRange(fileBytes,from, to);
           sendAppendRequest(mediaId, 1, Base64.getEncoder().encode(bytesChunk));
+          return;
         }
+        from = i * (fileBytes.length / fileSizeMB.intValue());
+        if(i == fileSizeMB.intValue() - 1) {
+          to = fileBytes.length + 1;
+        } else {
+          to = i * (fileBytes.length / fileSizeMB.intValue()) + (fileBytes.length / fileSizeMB
+              .intValue());
+        }
+        byte[] bytesChunk = Arrays.copyOfRange(fileBytes, 0, fileBytes.length / 2);
+        log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
+        sendAppendRequest(mediaId, 0, Base64.getEncoder().encode(bytesChunk));
       }
+      log.info("Finished APPEND portion of media upload");
     } catch (IOException e) {
       log.error("Could not read file bytes: {}", e.toString());
     }
@@ -138,13 +168,14 @@ public class TwitterMediaUploadService {
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
     Map<String, String> requestParamsMap = new HashMap();
+    requestParamsMap.put("include_entities", "true");
     requestParamsMap.put("command", "APPEND");
     requestParamsMap.put("media_id", mediaId);
     requestParamsMap.put("segment_index", segmentIndex.toString());
 
     String signature = signatureUtility
         .calculateStatusUpdateSignature("https://upload.twitter.com/1.1/media/upload.json", "POST",
-            timestamp, nonce, requestParamsMap, mediaData);
+            timestamp, nonce, requestParamsMap);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -157,20 +188,14 @@ public class TwitterMediaUploadService {
         "oauth_version=\"1.0\"";
     headers.add("Authorization", authHeaderText);
 
-    HttpEntity request = new HttpEntity(null, headers);
+    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    body.add("media_data", mediaData);
 
-    try {
-      String url = "https://upload.twitter.com/1.1/media/upload.json?"
-          + "&command=APPEND&media_id=" + mediaId + "&segment_index=" + segmentIndex.toString()
-          + "&media_data=" + URLEncoder.encode(new String(mediaData), "UTF-8");
+    HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+    String url = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true"
+        + "&command=APPEND&media_id=" + mediaId + "&segment_index=" + segmentIndex.toString();
 
-      RestTemplate restTemplate = new RestTemplate();
-      ResponseEntity<String> responseEntity = restTemplate
-          .exchange(url, HttpMethod.POST, request, String.class);
-      String responseString = responseEntity.getBody();
-    }
-    catch (UnsupportedEncodingException e) {
-      log.error("Could not encode mediaData: {}", e.toString());
-    }
+    RestTemplate restTemplate = new RestTemplate();
+    restTemplate.exchange(url, HttpMethod.POST, request, String.class);
   }
 }

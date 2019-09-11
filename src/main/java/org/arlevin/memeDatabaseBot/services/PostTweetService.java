@@ -41,7 +41,7 @@ public class PostTweetService {
     params.put("include_entities", "true");
     params.put("status", tweetText);
     String signature = signatureUtility
-        .calculateStatusUpdateSignature(url, "POST", timestamp, nonce, params, null);
+        .calculateStatusUpdateSignature(url, "POST", timestamp, nonce, params);
 
     HttpHeaders httpHeaders = new HttpHeaders();
     httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
