@@ -2,6 +2,7 @@ package org.arlevin.memeDatabaseBot.services;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.arlevin.memeDatabaseBot.utilities.SignatureUtility;
@@ -36,7 +37,11 @@ public class PostTweetService {
 
     String url = "https://api.twitter.com/1.1/statuses/update.json?include_entities=true";
 
-    String signature = signatureUtility.calculateStatusUpdateSignature(url, "POST", tweetText, timestamp, nonce, true, new HashMap<>());
+    Map<String, String> params = new HashMap<>();
+    params.put("include_entities", "true");
+    params.put("status", tweetText);
+    String signature = signatureUtility
+        .calculateStatusUpdateSignature(url, "POST", timestamp, nonce, params, null);
 
     HttpHeaders httpHeaders = new HttpHeaders();
     httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -49,7 +54,8 @@ public class PostTweetService {
         "oauth_version=\"1.0\"";
     httpHeaders.add("Authorization", authHeaderText);
 
-    HttpEntity request = new HttpEntity("status=" + signatureUtility.encode(tweetText), httpHeaders);
+    HttpEntity request = new HttpEntity("status=" + signatureUtility.encode(tweetText),
+        httpHeaders);
     return restTemplate.postForObject(url, request, String.class);
   }
 }

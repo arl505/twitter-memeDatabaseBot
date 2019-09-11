@@ -34,9 +34,9 @@ public class SignatureUtility {
   @Value("${auth.access.tokenSecret}")
   private String accessTokenSecret;
 
-  public String calculateStatusUpdateSignature(String url, String method, String status,
-      String timestamp, String nonce, boolean includeEntities, Map<String, String> params) {
-    String parameterString = generateParameterString(status, timestamp, nonce, includeEntities, params);
+  public String calculateStatusUpdateSignature(String url, String method, String timestamp,
+      String nonce, Map<String, String> params, byte[] mediaData) {
+    String parameterString = generateParameterString(timestamp, nonce, params, mediaData);
 
     String signatureBaseString =
         method
@@ -57,8 +57,8 @@ public class SignatureUtility {
     return signature;
   }
 
-  private String generateParameterString(String status, String timestamp, String nonce,
-      boolean includeEntities, Map<String, String> params) {
+  private String generateParameterString(String timestamp, String nonce, Map<String, String> params,
+      byte[] mediaData) {
     String _consumerKeyKey = encode("oauth_consumer_key");
     String _nonceKey = encode("oauth_nonce");
     String _signatureMethodKey = encode("oauth_signature_method");
@@ -84,22 +84,14 @@ public class SignatureUtility {
     encodedKeys.add(_tokenKey);
     encodedKeys.add(_oauthVersionKey);
 
-    if (status != null) {
-      String _statusKey = encode("status");
-      keyValuePairs.put(_statusKey, encode(status));
-      encodedKeys.add(_statusKey);
-    }
-
-    if (includeEntities) {
-      String _includeEntitiesKey = encode("include_entities");
-      keyValuePairs.put(_includeEntitiesKey, encode("true"));
-      encodedKeys.add(_includeEntitiesKey);
-    }
-
     params.forEach((key, value) -> {
       keyValuePairs.put(encode(key), encode(value));
       encodedKeys.add(encode(key));
     });
+
+    if(mediaData != null) {
+      encodedKeys.add(encode("media_id"));
+    }
 
     Collections.sort(encodedKeys);
 
@@ -107,12 +99,17 @@ public class SignatureUtility {
 
     for (int i = 0; i < encodedKeys.size(); i++) {
       String key = encodedKeys.get(i);
-
-      parameterString = parameterString.concat(key)
-          .concat("=")
-          .concat(keyValuePairs.get(key));
-      if (i != encodedKeys.size() - 1) {
-        parameterString = parameterString.concat("&");
+      if(key.equals("media_data")) {
+        parameterString = parameterString.concat(key)
+            .concat("=")
+            .concat(new String(mediaData));
+      } else {
+        parameterString = parameterString.concat(key)
+            .concat("=")
+            .concat(keyValuePairs.get(key));
+        if (i != encodedKeys.size() - 1) {
+          parameterString = parameterString.concat("&");
+        }
       }
     }
 
