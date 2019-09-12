@@ -50,6 +50,7 @@ public class TwitterMediaUploadService {
   public void uploadMedia(String fileName) {
     String mediaId = initUpload(fileName);
     appendProcessor(fileName, mediaId);
+    finalizeUpload(mediaId);
   }
 
   private String initUpload(String fileName) {
@@ -59,7 +60,7 @@ public class TwitterMediaUploadService {
     File file = new File(fileName);
     long fileBytesNum = file.length();
     String mimeType;
-    if(fileName.substring(fileName.indexOf('.')).equals(".mp4")) {
+    if (fileName.substring(fileName.indexOf('.')).equals(".mp4")) {
       mimeType = "video/mp4";
     } else {
       mimeType = URLConnection.guessContentTypeFromName(file.getName());
@@ -143,12 +144,12 @@ public class TwitterMediaUploadService {
           from = fileBytes.length / 2;
           to = fileBytes.length;
           log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
-          bytesChunk = Arrays.copyOfRange(fileBytes,from, to);
+          bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
           sendAppendRequest(mediaId, 1, Base64.getEncoder().encode(bytesChunk));
           return;
         }
         from = i * (fileBytes.length / fileSizeMB.intValue());
-        if(i == fileSizeMB.intValue() - 1) {
+        if (i == fileSizeMB.intValue() - 1) {
           to = fileBytes.length;
         } else {
           to = i * (fileBytes.length / fileSizeMB.intValue()) + (fileBytes.length / fileSizeMB
@@ -200,5 +201,36 @@ public class TwitterMediaUploadService {
 
     RestTemplate restTemplate = new RestTemplate();
     restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+  }
+
+  private void finalizeUpload(String mediaId) {
+    RestTemplate restTemplate = new RestTemplate();
+
+    String nonce = RandomStringUtils.randomAlphanumeric(42);
+    String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
+
+    Map<String, String> params = new HashMap<>();
+    params.put("include_entities", "true");
+    params.put("command", "FINALIZE");
+    params.put("media_id", mediaId);
+    String signature = signatureUtility
+        .calculateStatusUpdateSignature("https://upload.twitter.com/1.1/media/upload.json", "POST",
+            timestamp, nonce, params);
+
+    HttpHeaders httpHeaders = new HttpHeaders();
+    httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +
+        "oauth_nonce=\"" + nonce + "\", " +
+        "oauth_signature=\"" + signature + "\", " +
+        "oauth_signature_method=\"HMAC-SHA1\", " +
+        "oauth_timestamp=\"" + timestamp + "\", " +
+        "oauth_token=\"" + accessToken + "\", " +
+        "oauth_version=\"1.0\"";
+    httpHeaders.add("Authorization", authHeaderText);
+
+    HttpEntity request = new HttpEntity("command=FINALIZE&media_id=" + mediaId, httpHeaders);
+    ResponseEntity<String> responseEntity = restTemplate
+        .exchange("https://upload.twitter.com/1.1/media/upload.json?include_entities=true",
+            HttpMethod.POST, request, String.class);
   }
 }
