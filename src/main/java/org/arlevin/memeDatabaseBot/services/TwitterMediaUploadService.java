@@ -131,6 +131,7 @@ public class TwitterMediaUploadService {
       // for a file say 8000424 bytes, this will round up to 9 MB,
       // upload the file 1/9th at a time: nine requests each with a 1/9th chunk of the file
       // if the file is < 1 MB, upload in 2 chunks each 1/2 of the toal file
+      Integer uploadedTotal = 0;
       for (int i = 0; i < fileSizeMB.intValue(); i++) {
         if (fileSizeMB == 1L) {
           from = 0;
@@ -140,7 +141,7 @@ public class TwitterMediaUploadService {
           sendAppendRequest(mediaId, 0, Base64.getEncoder().encode(bytesChunk));
 
           from = fileBytes.length / 2;
-          to = fileBytes.length + 1;
+          to = fileBytes.length;
           log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
           bytesChunk = Arrays.copyOfRange(fileBytes,from, to);
           sendAppendRequest(mediaId, 1, Base64.getEncoder().encode(bytesChunk));
@@ -148,14 +149,16 @@ public class TwitterMediaUploadService {
         }
         from = i * (fileBytes.length / fileSizeMB.intValue());
         if(i == fileSizeMB.intValue() - 1) {
-          to = fileBytes.length + 1;
+          to = fileBytes.length;
         } else {
           to = i * (fileBytes.length / fileSizeMB.intValue()) + (fileBytes.length / fileSizeMB
               .intValue());
         }
-        byte[] bytesChunk = Arrays.copyOfRange(fileBytes, 0, fileBytes.length / 2);
+        byte[] bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
+        uploadedTotal = uploadedTotal + bytesChunk.length;
         log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
-        sendAppendRequest(mediaId, 0, Base64.getEncoder().encode(bytesChunk));
+        sendAppendRequest(mediaId, i, Base64.getEncoder().encode(bytesChunk));
+        log.info("Uploaded {} bytes total", uploadedTotal);
       }
       log.info("Finished APPEND portion of media upload");
     } catch (IOException e) {
