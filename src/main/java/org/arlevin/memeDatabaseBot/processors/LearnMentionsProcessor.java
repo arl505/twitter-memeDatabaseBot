@@ -10,6 +10,7 @@ import java.nio.channels.ReadableByteChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memeDatabaseBot.domain.UserMemesEntity;
 import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
+import org.arlevin.memeDatabaseBot.services.PostTweetService;
 import org.arlevin.memeDatabaseBot.utilities.MediaFileUtility;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -21,11 +22,14 @@ public class LearnMentionsProcessor {
 
   private final UserMemesRepository userMemesRepository;
   private final MediaFileUtility mediaFileUtility;
+  private final PostTweetService postTweetService;
 
   public LearnMentionsProcessor(UserMemesRepository userMemesRepository,
-      MediaFileUtility mediaFileUtility) {
+      MediaFileUtility mediaFileUtility,
+      PostTweetService postTweetService) {
     this.userMemesRepository = userMemesRepository;
     this.mediaFileUtility = mediaFileUtility;
+    this.postTweetService = postTweetService;
   }
 
   void process(JSONObject tweet, String description) {
@@ -69,6 +73,7 @@ public class LearnMentionsProcessor {
       }
       downloadFile(twitterMediaUrl, mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
     }
+    postTweetService.postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✔️", tweet.getString("id_str"));
   }
 
   private void downloadFile(String url, String fileName) {

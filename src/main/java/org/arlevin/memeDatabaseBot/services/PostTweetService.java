@@ -29,17 +29,18 @@ public class PostTweetService {
     this.signatureUtility = signatureUtility;
   }
 
-  public String postTweet(String tweetText) {
+  public String postTweet(String tweetText, String replyToId) {
     RestTemplate restTemplate = new RestTemplate();
 
     String nonce = RandomStringUtils.randomAlphanumeric(42);
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
-    String url = "https://api.twitter.com/1.1/statuses/update.json?include_entities=true";
+    String url = "https://api.twitter.com/1.1/statuses/update.json";
 
     Map<String, String> params = new HashMap<>();
     params.put("include_entities", "true");
     params.put("status", tweetText);
+    params.put("in_reply_to_status_id", replyToId);
     String signature = signatureUtility
         .calculateStatusUpdateSignature(url, "POST", timestamp, nonce, params);
 
@@ -54,8 +55,8 @@ public class PostTweetService {
         "oauth_version=\"1.0\"";
     httpHeaders.add("Authorization", authHeaderText);
 
-    HttpEntity request = new HttpEntity("status=" + signatureUtility.encode(tweetText),
+    HttpEntity request = new HttpEntity("status=" + signatureUtility.encode(tweetText) + "&in_reply_to_status_id=" + replyToId,
         httpHeaders);
-    return restTemplate.postForObject(url, request, String.class);
+    return restTemplate.postForObject(url + "?include_entities=true", request, String.class);
   }
 }
