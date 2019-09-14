@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -273,15 +274,20 @@ public class TwitterMediaUploadService {
       httpHeaders.add("Authorization", authHeaderText);
       HttpEntity entity = new HttpEntity(httpHeaders);
 
-      ResponseEntity<String> responseEntity = restTemplate
-          .exchange(url, HttpMethod.GET, entity, String.class);
-      JSONObject response = new JSONObject(responseEntity.getBody());
-      if(response.getJSONObject("processing_info").getString("state").equals("succeeded")) {
-        isCompleted = true;
-      } else if(retryTimes == 0) {
-        isCompleted = false;
-      } else {
-        return checkStatus(mediaId, 5, retryTimes - 1);
+      try {
+        ResponseEntity<String> responseEntity = restTemplate
+            .exchange(url, HttpMethod.GET, entity, String.class);
+        JSONObject response = new JSONObject(responseEntity.getBody());
+        if (response.getJSONObject("processing_info").getString("state").equals("succeeded")) {
+          isCompleted = true;
+        } else if (retryTimes == 0) {
+          isCompleted = false;
+        } else {
+          return checkStatus(mediaId, 5, retryTimes - 1);
+        }
+      } catch (HttpClientErrorException e) {
+        log.info("Could not check status, assuming successful upload: {}", e.toString());
+        return true;
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
