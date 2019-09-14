@@ -13,6 +13,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.arlevin.memeDatabaseBot.utilities.SignatureUtility;
@@ -47,10 +48,13 @@ public class TwitterMediaUploadService {
     this.signatureUtility = signatureUtility;
   }
 
-  public void uploadMedia(String fileName) {
+  public String uploadMedia(String fileName) {
     String mediaId = initUpload(fileName);
     appendProcessor(fileName, mediaId);
-    finalizeUpload(mediaId);
+    boolean isMediaUploaded = finalizeUpload(mediaId);
+    return (isMediaUploaded)
+        ? mediaId
+        : null;
   }
 
   private String initUpload(String fileName) {
@@ -161,7 +165,6 @@ public class TwitterMediaUploadService {
         sendAppendRequest(mediaId, i, Base64.getEncoder().encode(bytesChunk));
         log.info("Uploaded {} bytes total", uploadedTotal);
       }
-      log.info("Finished APPEND portion of media upload");
     } catch (IOException e) {
       log.error("Could not read file bytes: {}", e.toString());
     }
@@ -203,7 +206,7 @@ public class TwitterMediaUploadService {
     restTemplate.exchange(url, HttpMethod.POST, request, String.class);
   }
 
-  private void finalizeUpload(String mediaId) {
+  private boolean finalizeUpload(String mediaId) {
     RestTemplate restTemplate = new RestTemplate();
 
     String nonce = RandomStringUtils.randomAlphanumeric(42);
@@ -232,5 +235,56 @@ public class TwitterMediaUploadService {
     ResponseEntity<String> responseEntity = restTemplate
         .exchange("https://upload.twitter.com/1.1/media/upload.json?include_entities=true",
             HttpMethod.POST, request, String.class);
+    JSONObject response = new JSONObject(responseEntity.getBody());
+
+    int checkAfterSecs = 0;
+    if (response.has("processing_info")) {
+      checkAfterSecs = response.getJSONObject("processing_info").getInt("check_after_secs");
+    }
+    return checkStatus(mediaId, checkAfterSecs, 3);
+  }
+
+  private boolean checkStatus(String mediaId, Integer checkAfterSecs, Integer retryTimes) {
+    try {
+      TimeUnit.SECONDS.sleep(checkAfterSecs);
+
+      RestTemplate restTemplate = new RestTemplate();
+      String url =
+          "https://upload.twitter.com/1.1/media/upload.json?command=STATUS&media_id=" + mediaId;
+      Map<String, String> signatureParams = new HashMap<>();
+      signatureParams.put("command", "STATUS");
+      signatureParams.put("media_id", mediaId);
+
+      String nonce = RandomStringUtils.randomAlphanumeric(42);
+      String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
+
+      String signature = signatureUtility
+          .calculateStatusUpdateSignature("https://upload.twitter.com/1.1/media/upload.json", "GET", timestamp, nonce, signatureParams);
+
+      HttpHeaders httpHeaders = new HttpHeaders();
+      String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +
+          "oauth_nonce=\"" + nonce + "\", " +
+          "oauth_signature=\"" + signature + "\", " +
+          "oauth_signature_method=\"HMAC-SHA1\", " +
+          "oauth_timestamp=\"" + timestamp + "\", " +
+          "oauth_token=\"" + accessToken + "\", " +
+          "oauth_version=\"1.0\"";
+      httpHeaders.add("Authorization", authHeaderText);
+      HttpEntity entity = new HttpEntity(httpHeaders);
+
+      ResponseEntity<String> responseEntity = restTemplate
+          .exchange(url, HttpMethod.GET, entity, String.class);
+      JSONObject response = new JSONObject(responseEntity.getBody());
+      if(response.getJSONObject("processing_info").getString("state").equals("succeeded")) {
+        return true;
+      } else if(retryTimes == 0) {
+        return false;
+      }
+      checkStatus(mediaId, 5, retryTimes - 1);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      log.error("Sleeping for {} seconds threw an exception: {}", checkAfterSecs, e.toString());
+    }
+    return false;
   }
 }

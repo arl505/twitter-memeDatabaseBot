@@ -39,7 +39,10 @@ public class PostMentionsProcessor {
 
         String fileName = mediaFileUtility.getFileName(media.getSequenceNumber(), fileSuffix);
 
-        twitterMediaUploadService.uploadMedia(fileName);
+        String mediaId = twitterMediaUploadService.uploadMedia(fileName);
+        if(mediaId == null) {
+
+        }
       }
     }
     else {
