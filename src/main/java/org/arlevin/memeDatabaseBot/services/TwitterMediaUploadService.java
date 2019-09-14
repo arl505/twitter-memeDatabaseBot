@@ -245,6 +245,7 @@ public class TwitterMediaUploadService {
   }
 
   private boolean checkStatus(String mediaId, Integer checkAfterSecs, Integer retryTimes) {
+    boolean isCompleted = false;
     try {
       TimeUnit.SECONDS.sleep(checkAfterSecs);
 
@@ -276,15 +277,16 @@ public class TwitterMediaUploadService {
           .exchange(url, HttpMethod.GET, entity, String.class);
       JSONObject response = new JSONObject(responseEntity.getBody());
       if(response.getJSONObject("processing_info").getString("state").equals("succeeded")) {
-        return true;
+        isCompleted = true;
       } else if(retryTimes == 0) {
-        return false;
+        isCompleted = false;
+      } else {
+        return checkStatus(mediaId, 5, retryTimes - 1);
       }
-      checkStatus(mediaId, 5, retryTimes - 1);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       log.error("Sleeping for {} seconds threw an exception: {}", checkAfterSecs, e.toString());
     }
-    return false;
+    return isCompleted;
   }
 }

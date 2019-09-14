@@ -2,6 +2,7 @@ package org.arlevin.memeDatabaseBot.services;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -29,7 +30,7 @@ public class PostTweetService {
     this.signatureUtility = signatureUtility;
   }
 
-  public String postTweet(String tweetText, String replyToId) {
+  public void postTweet(String tweetText, String replyToId, List<String> mediaIds) {
     RestTemplate restTemplate = new RestTemplate();
 
     String nonce = RandomStringUtils.randomAlphanumeric(42);
@@ -37,10 +38,18 @@ public class PostTweetService {
 
     String url = "https://api.twitter.com/1.1/statuses/update.json";
 
+    String requestBody = "status" + "=" + signatureUtility.encode(tweetText) + "&in_reply_to_status_id=" + replyToId;
+
     Map<String, String> params = new HashMap<>();
     params.put("include_entities", "true");
     params.put("status", tweetText);
     params.put("in_reply_to_status_id", replyToId);
+    if (mediaIds != null) {
+      String mediaIdsString = String.join(",", mediaIds);
+      requestBody = requestBody + "&media_ids=" + mediaIdsString;
+      params.put("media_ids", mediaIdsString);
+    }
+
     String signature = signatureUtility
         .calculateStatusUpdateSignature(url, "POST", timestamp, nonce, params);
 
@@ -55,8 +64,7 @@ public class PostTweetService {
         "oauth_version=\"1.0\"";
     httpHeaders.add("Authorization", authHeaderText);
 
-    HttpEntity request = new HttpEntity("status=" + signatureUtility.encode(tweetText) + "&in_reply_to_status_id=" + replyToId,
-        httpHeaders);
-    return restTemplate.postForObject(url + "?include_entities=true", request, String.class);
+    HttpEntity request = new HttpEntity(requestBody, httpHeaders);
+    restTemplate.postForObject(url + "?include_entities=true", request, String.class);
   }
 }

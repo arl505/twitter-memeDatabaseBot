@@ -73,7 +73,7 @@ public class LearnMentionsProcessor {
       }
       downloadFile(twitterMediaUrl, mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
     }
-    postTweetService.postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✔️", tweet.getString("id_str"));
+    postTweetService.postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✔️", tweet.getString("id_str"), null);
   }
 
   private void downloadFile(String url, String fileName) {

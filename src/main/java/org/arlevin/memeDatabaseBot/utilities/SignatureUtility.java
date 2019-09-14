@@ -107,29 +107,32 @@ public class SignatureUtility {
   }
 
   public String encode(String value) {
-    String encoded = "";
-    try {
-      encoded = URLEncoder.encode(value, "UTF-8");
-    } catch (Exception e) {
-      log.error("Unable to encode text ({}): {}", value, e.toString());
-    }
-    String sb = "";
-    char focus;
-    for (int i = 0; i < encoded.length(); i++) {
-      focus = encoded.charAt(i);
-      if (focus == '*') {
-        sb += "%2A";
-      } else if (focus == '+') {
-        sb += "%20";
-      } else if (focus == '%' && i + 1 < encoded.length()
-          && encoded.charAt(i + 1) == '7' && encoded.charAt(i + 2) == 'E') {
-        sb += '~';
-        i += 2;
-      } else {
-        sb += focus;
+    if(value != null) {
+      String encoded = "";
+      try {
+        encoded = URLEncoder.encode(value, "UTF-8");
+      } catch (Exception e) {
+        log.error("Unable to encode text ({}): {}", value, e.toString());
       }
+      String sb = "";
+      char focus;
+      for (int i = 0; i < encoded.length(); i++) {
+        focus = encoded.charAt(i);
+        if (focus == '*') {
+          sb += "%2A";
+        } else if (focus == '+') {
+          sb += "%20";
+        } else if (focus == '%' && i + 1 < encoded.length()
+            && encoded.charAt(i + 1) == '7' && encoded.charAt(i + 2) == 'E') {
+          sb += '~';
+          i += 2;
+        } else {
+          sb += focus;
+        }
+      }
+      return sb.toString();
     }
-    return sb.toString();
+    return "";
   }
 
   private static String toHexString(byte[] bytes) {
