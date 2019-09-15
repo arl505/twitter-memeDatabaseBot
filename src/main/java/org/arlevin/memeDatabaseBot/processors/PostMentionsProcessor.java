@@ -47,7 +47,7 @@ public class PostMentionsProcessor {
 
         String fileName = mediaFileUtility.getFileName(media.getSequenceNumber(), fileSuffix);
 
-        String mediaId = twitterMediaUploadService.uploadMedia(fileName, media.getIsGif());
+        String mediaId = twitterMediaUploadService.uploadMedia(fileName);
         mediaIds.add(mediaId);
       }
       if (!mediaIds.isEmpty()) {

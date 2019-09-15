@@ -46,7 +46,6 @@ public class LearnMentionsProcessor {
             .description(description)
             .sequenceNumber(sequenceNumber)
             .twitterMediaUrl(twitterMediaUrl)
-            .isGif(media.getString("type").equals("animated_gif"))
             .build();
 
         userMemesRepository.save(userMemesEntity);
@@ -62,6 +61,8 @@ public class LearnMentionsProcessor {
     } else {
       log.info("Received a learn request with an already in use description {} from userId {}",
           description, userId);
+      postTweetService.postTweet("@" + tweet.getJSONObject("user").getString("screen_name")
+          + " You already have a meme saved with that description", tweet.getString("id_str"), null);
     }
   }
 
