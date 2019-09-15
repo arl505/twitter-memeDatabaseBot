@@ -34,46 +34,54 @@ public class LearnMentionsProcessor {
 
   void process(JSONObject tweet, String description) {
     String userId = tweet.getJSONObject("user").getString("id_str");
+    if (!userMemesRepository.findAllByUserIdAndDescription(userId, description).isPresent()) {
+      JSONArray medias = tweet.getJSONObject("extended_entities").getJSONArray("media");
+      for (int i = 0; i < medias.length(); i++) {
+        JSONObject media = medias.getJSONObject(i);
+        String twitterMediaUrl = getMediaUrl(media);
+        String sequenceNumber = mediaFileUtility.getSequenceNumber();
 
-    JSONArray medias = tweet.getJSONObject("extended_entities").getJSONArray("media");
-    for (int i = 0; i < medias.length(); i++) {
-      JSONObject media = medias.getJSONObject(i);
+        UserMemesEntity userMemesEntity = UserMemesEntity.builder()
+            .userId(userId)
+            .description(description)
+            .sequenceNumber(sequenceNumber)
+            .twitterMediaUrl(twitterMediaUrl)
+            .isGif(media.getString("type").equals("animated_gif"))
+            .build();
 
-      String twitterMediaUrl = "";
-      if (media.getString("type").equals("video")) {
-        JSONArray variantsArray = media
-            .getJSONObject("video_info")
-            .getJSONArray("variants");
-        boolean foundMp4 = false;
-        for (int j = 0; i < variantsArray.length() && !foundMp4; j++) {
-          if (variantsArray.getJSONObject(j).getString("content_type").equals("video/mp4")
-              || j == variantsArray.length() - 1) {
-            foundMp4 = true;
-            twitterMediaUrl = variantsArray.getJSONObject(j).getString("url");
-          }
+        userMemesRepository.save(userMemesEntity);
+
+        String fileSuffix = twitterMediaUrl.substring(twitterMediaUrl.lastIndexOf('.'));
+        if (fileSuffix.contains("?")) {
+          fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
         }
-      } else {
-        twitterMediaUrl = media.getString("media_url_https");
+        downloadFile(twitterMediaUrl, mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
       }
-
-      String sequenceNumber = mediaFileUtility.getSequenceNumber();
-
-      UserMemesEntity userMemesEntity = UserMemesEntity.builder()
-          .userId(userId)
-          .description(description)
-          .sequenceNumber(sequenceNumber)
-          .twitterMediaUrl(twitterMediaUrl)
-          .build();
-
-      userMemesRepository.save(userMemesEntity);
-
-      String fileSuffix = twitterMediaUrl.substring(twitterMediaUrl.lastIndexOf('.'));
-      if (fileSuffix.contains("?")) {
-        fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
-      }
-      downloadFile(twitterMediaUrl, mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
+      postTweetService.postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✅️",
+          tweet.getString("id_str"), null);
     }
-    postTweetService.postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✔️", tweet.getString("id_str"), null);
+    log.info("Received a learn request with an already in use description {} from userId {}", description, userId);
+  }
+
+  private String getMediaUrl(JSONObject media) {
+    String twitterMediaUrl = "";
+    if (media.getString("type").equals("video") || media.getString("type")
+        .equals("animated_gif")) {
+      JSONArray variantsArray = media
+          .getJSONObject("video_info")
+          .getJSONArray("variants");
+      boolean foundMp4 = false;
+      for (int j = 0; j < variantsArray.length() && !foundMp4; j++) {
+        if (variantsArray.getJSONObject(j).getString("content_type").equals("video/mp4")
+            || j == variantsArray.length() - 1) {
+          foundMp4 = true;
+          twitterMediaUrl = variantsArray.getJSONObject(j).getString("url");
+        }
+      }
+    } else {
+      twitterMediaUrl = media.getString("media_url_https");
+    }
+    return twitterMediaUrl;
   }
 
   private void downloadFile(String url, String fileName) {

@@ -49,8 +49,8 @@ public class TwitterMediaUploadService {
     this.signatureUtility = signatureUtility;
   }
 
-  public String uploadMedia(String fileName) {
-    String mediaId = initUpload(fileName);
+  public String uploadMedia(String fileName, boolean isGif) {
+    String mediaId = initUpload(fileName, isGif);
     appendProcessor(fileName, mediaId);
     boolean isMediaUploaded = finalizeUpload(mediaId);
     return (isMediaUploaded)
@@ -58,28 +58,22 @@ public class TwitterMediaUploadService {
         : null;
   }
 
-  private String initUpload(String fileName) {
+  private String initUpload(String fileName, boolean isGif) {
     String nonce = RandomStringUtils.randomAlphanumeric(42);
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
     File file = new File(fileName);
     long fileBytesNum = file.length();
+
     String mimeType;
     if (fileName.substring(fileName.indexOf('.')).equals(".mp4")) {
-      mimeType = "video/mp4";
+      if(isGif) {
+        mimeType = "image/gif";
+      } else {
+        mimeType = "video/mp4";
+      }
     } else {
       mimeType = URLConnection.guessContentTypeFromName(file.getName());
-    }
-    String type = mimeType.split("/")[0];
-    String media_category;
-    if (type.equals("video")) {
-      media_category = "TweetVideo";
-    } else {
-      if (mimeType.equals("image/gif")) {
-        media_category = "TweetGif";
-      } else {
-        media_category = "TweetImage";
-      }
     }
 
     Map<String, String> requestParamsMap = new HashMap();
@@ -88,7 +82,6 @@ public class TwitterMediaUploadService {
     requestParamsMap.put("command", "INIT");
     requestParamsMap.put("total_bytes", String.valueOf(fileBytesNum));
     requestParamsMap.put("media_type", mimeType);
-    requestParamsMap.put("media_category", media_category);
     String signature = signatureUtility
         .calculateStatusUpdateSignature("https://upload.twitter.com/1.1/media/upload.json", "POST",
             timestamp, nonce, requestParamsMap);
@@ -106,7 +99,7 @@ public class TwitterMediaUploadService {
 
     try {
       String requestBodyString = "command=INIT&total_bytes=" + fileBytesNum + "&media_type="
-          + URLEncoder.encode(mimeType, "UTF-8") + "&media_category=" + media_category;
+          + URLEncoder.encode(mimeType, "UTF-8");
       HttpEntity request = new HttpEntity(requestBodyString, headers);
 
       RestTemplate restTemplate = new RestTemplate();
@@ -143,12 +136,10 @@ public class TwitterMediaUploadService {
           from = 0;
           to = fileBytes.length / 2;
           byte[] bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
-          log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
           sendAppendRequest(mediaId, 0, Base64.getEncoder().encode(bytesChunk));
 
           from = fileBytes.length / 2;
           to = fileBytes.length;
-          log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
           bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
           sendAppendRequest(mediaId, 1, Base64.getEncoder().encode(bytesChunk));
           return;
@@ -162,10 +153,9 @@ public class TwitterMediaUploadService {
         }
         byte[] bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
         uploadedTotal = uploadedTotal + bytesChunk.length;
-        log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
         sendAppendRequest(mediaId, i, Base64.getEncoder().encode(bytesChunk));
-        log.info("Uploaded {} bytes total", uploadedTotal);
       }
+      log.info("Uploaded {} bytes total", uploadedTotal);
     } catch (IOException e) {
       log.error("Could not read file bytes: {}", e.toString());
     }

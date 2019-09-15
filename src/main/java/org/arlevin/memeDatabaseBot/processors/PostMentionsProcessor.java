@@ -47,14 +47,14 @@ public class PostMentionsProcessor {
 
         String fileName = mediaFileUtility.getFileName(media.getSequenceNumber(), fileSuffix);
 
-        String mediaId = twitterMediaUploadService.uploadMedia(fileName);
+        String mediaId = twitterMediaUploadService.uploadMedia(fileName, media.getIsGif());
         mediaIds.add(mediaId);
       }
       if (!mediaIds.isEmpty()) {
         postTweetService.postTweet("@" + authorScreenName, replyToId, mediaIds);
       }
     } else {
-      postTweetService.postTweet("Sorry, I haven't learned that meme from you yet", replyToId, null);
+      postTweetService.postTweet("@" + authorScreenName + " Sorry, I haven't learned that meme from you yet", replyToId, null);
     }
   }
 }
