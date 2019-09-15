@@ -59,8 +59,10 @@ public class LearnMentionsProcessor {
       }
       postTweetService.postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✅️",
           tweet.getString("id_str"), null);
+    } else {
+      log.info("Received a learn request with an already in use description {} from userId {}",
+          description, userId);
     }
-    log.info("Received a learn request with an already in use description {} from userId {}", description, userId);
   }
 
   private String getMediaUrl(JSONObject media) {
