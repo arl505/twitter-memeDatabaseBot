@@ -33,36 +33,42 @@ public class LearnMentionsProcessor {
   }
 
   void process(JSONObject tweet, String description) {
-    String userId = tweet.getJSONObject("user").getString("id_str");
-    if (!userMemesRepository.findAllByUserIdAndDescription(userId, description).isPresent()) {
-      JSONArray medias = tweet.getJSONObject("extended_entities").getJSONArray("media");
-      for (int i = 0; i < medias.length(); i++) {
-        JSONObject media = medias.getJSONObject(i);
-        String twitterMediaUrl = getMediaUrl(media);
-        String sequenceNumber = mediaFileUtility.getSequenceNumber();
+    if(tweet.has("extended_entities")) {
+      String userId = tweet.getJSONObject("user").getString("id_str");
+      if (!userMemesRepository.findAllByUserIdAndDescription(userId, description).isPresent()) {
+        JSONArray medias = tweet.getJSONObject("extended_entities").getJSONArray("media");
+        for (int i = 0; i < medias.length(); i++) {
+          JSONObject media = medias.getJSONObject(i);
+          String twitterMediaUrl = getMediaUrl(media);
+          String sequenceNumber = mediaFileUtility.getSequenceNumber();
 
-        UserMemesEntity userMemesEntity = UserMemesEntity.builder()
-            .userId(userId)
-            .description(description)
-            .sequenceNumber(sequenceNumber)
-            .twitterMediaUrl(twitterMediaUrl)
-            .build();
+          UserMemesEntity userMemesEntity = UserMemesEntity.builder()
+              .userId(userId)
+              .description(description)
+              .sequenceNumber(sequenceNumber)
+              .twitterMediaUrl(twitterMediaUrl)
+              .build();
 
-        userMemesRepository.save(userMemesEntity);
+          userMemesRepository.save(userMemesEntity);
 
-        String fileSuffix = twitterMediaUrl.substring(twitterMediaUrl.lastIndexOf('.'));
-        if (fileSuffix.contains("?")) {
-          fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
+          String fileSuffix = twitterMediaUrl.substring(twitterMediaUrl.lastIndexOf('.'));
+          if (fileSuffix.contains("?")) {
+            fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
+          }
+          downloadFile(twitterMediaUrl, mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
         }
-        downloadFile(twitterMediaUrl, mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
+        postTweetService
+            .postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✅️",
+                tweet.getString("id_str"), null);
+      } else {
+        log.info("Received a learn request with an already in use description {} from userId {}",
+            description, userId);
+        postTweetService.postTweet("@" + tweet.getJSONObject("user").getString("screen_name")
+                + " You already have a meme saved with that description", tweet.getString("id_str"),
+            null);
       }
-      postTweetService.postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✅️",
-          tweet.getString("id_str"), null);
     } else {
-      log.info("Received a learn request with an already in use description {} from userId {}",
-          description, userId);
-      postTweetService.postTweet("@" + tweet.getJSONObject("user").getString("screen_name")
-          + " You already have a meme saved with that description", tweet.getString("id_str"), null);
+      log.info("Received a learn request with no media attached");
     }
   }
 

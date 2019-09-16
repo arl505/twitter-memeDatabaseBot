@@ -33,12 +33,13 @@ public class MentionsProcessor {
       addMentionRecordToDb(tweet);
 
       String tweetText = tweet.getString("text");
-      tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("@memedatabasebot"));
+      tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("@memestorebot"));
 
       if (isValidLearnMention(tweetText)) {
         learnMentionsProcessor.process(tweet, getLearnDescription(tweetText));
       } else if (isValidPostMention(tweetText)) {
-        postMentionsProcessor.process(tweet, getPostDescription(tweetText));
+        boolean removeEndUrl = tweet.get("is_quote_status").equals(true);
+        postMentionsProcessor.process(tweet, getPostDescription(tweetText, removeEndUrl));
       } else {
         log.info("Received an invalid mention: {}", tweet.getString("text"));
       }
@@ -53,11 +54,11 @@ public class MentionsProcessor {
   }
 
   private boolean isValidLearnMention(String tweetText) {
-    return tweetText.matches("(?i:@memeDatabaseBot\\s+learn\\s*\\S+.*https://t.co/\\S+.*)");
+    return tweetText.matches("(?i:@memestorebot\\s+learn\\s*\\S+.*https://t.co/\\S+.*)");
   }
 
   private boolean isValidPostMention(String tweetText) {
-    return tweetText.matches("(?i:@memeDatabaseBot\\s+post\\s*\\S+.*)");
+    return tweetText.matches("(?i:@memestorebot\\s+post\\s*\\S+.*)");
   }
 
   private String getLearnDescription(String tweetText) {
@@ -69,10 +70,15 @@ public class MentionsProcessor {
     return tweetText;
   }
 
-  private String getPostDescription(String tweetText) {
+  private String getPostDescription(String tweetText, boolean removeEndUrl) {
     tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("post") + 4);
+
     if(tweetText.matches("\\s+\\S+.*")) {
       tweetText = tweetText.replaceFirst("\\s+", "");
+    }
+
+    if(removeEndUrl) {
+      tweetText = tweetText.replaceAll("(?i:\\s*https://t.co/\\S+.*)", "");
     }
     return tweetText;
   }
