@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -51,8 +52,11 @@ public class MentionsListener {
     String nonce = RandomStringUtils.randomAlphanumeric(42);
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
+    Map<String, String> signatureParams = new HashMap<>();
+    signatureParams.put("tweet_mode", "extended");
+
     String signature = signatureUtility
-        .calculateStatusUpdateSignature(url, "GET", timestamp, nonce, new HashMap<>());
+        .calculateStatusUpdateSignature(url, "GET", timestamp, nonce, signatureParams);
 
     HttpHeaders httpHeaders = new HttpHeaders();
     String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +
@@ -66,7 +70,7 @@ public class MentionsListener {
     HttpEntity entity = new HttpEntity(httpHeaders);
 
     ResponseEntity<String> responseEntity = restTemplate
-        .exchange(url, HttpMethod.GET, entity, String.class);
+        .exchange(url + "?tweet_mode=extended", HttpMethod.GET, entity, String.class);
     JSONArray response = new JSONArray(responseEntity.getBody());
 
     List<JSONObject> newMentions = new ArrayList<>();

@@ -32,7 +32,7 @@ public class MentionsProcessor {
     for (JSONObject tweet : tweets) {
       addMentionRecordToDb(tweet);
 
-      String tweetText = tweet.getString("text");
+      String tweetText = tweet.getString("full_text");
       tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("@memestorebot"));
 
       if (isValidLearnMention(tweetText)) {
@@ -41,7 +41,7 @@ public class MentionsProcessor {
         boolean removeEndUrl = tweet.get("is_quote_status").equals(true);
         postMentionsProcessor.process(tweet, getPostDescription(tweetText, removeEndUrl));
       } else {
-        log.info("Received an invalid mention: {}", tweet.getString("text"));
+        log.info("Received an invalid mention: {}", tweet.getString("full_text"));
       }
     }
   }
