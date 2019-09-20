@@ -79,13 +79,17 @@ public class LearnMentionsProcessor {
       JSONArray variantsArray = media
           .getJSONObject("video_info")
           .getJSONArray("variants");
-      boolean foundMp4 = false;
-      for (int j = 0; j < variantsArray.length() && !foundMp4; j++) {
-        if (variantsArray.getJSONObject(j).getString("content_type").equals("video/mp4")
+
+      int bitrate = 0;
+      for (int j = 0; j < variantsArray.length(); j++) {
+        if (((variantsArray.getJSONObject(j).getString("content_type").equals("video/mp4")) && (variantsArray.getJSONObject(j).getInt("bitrate") > bitrate))
             || j == variantsArray.length() - 1) {
-          foundMp4 = true;
+          bitrate = variantsArray.getJSONObject(j).getInt("bitrate");
           twitterMediaUrl = variantsArray.getJSONObject(j).getString("url");
         }
+      }
+      if(twitterMediaUrl.equals("")) {
+        twitterMediaUrl = variantsArray.getJSONObject(0).getString("url");
       }
     } else {
       twitterMediaUrl = media.getString("media_url_https");
