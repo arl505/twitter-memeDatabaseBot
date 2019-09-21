@@ -188,7 +188,7 @@ public class LearnMentionsProcessor {
     for (int j = 0; j < variantsArray.length(); j++) {
       if (((variantsArray.getJSONObject(j).getString("content_type").equals("video/mp4")) && (
           variantsArray.getJSONObject(j).getInt("bitrate") > bitrate))
-          || j == variantsArray.length() - 1) {
+          || ((j == variantsArray.length() - 1) && (bitrate == 0))) {
         bitrate = (variantsArray.getJSONObject(j).has("bitrate"))
             ? variantsArray.getJSONObject(j).getInt("bitrate")
             : 0;

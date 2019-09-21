@@ -54,7 +54,7 @@ public class MentionsProcessor {
   }
 
   private boolean isValidLearnMention(String tweetText) {
-    return tweetText.matches("(?i:.*@memestorebot\\s+learn\\s*\\S+.*)");
+    return tweetText.matches("(?i:.*@memestorebot\\s+learn\\s*\\S+[\\s\\S]*)");
   }
 
   private boolean isValidPostMention(String tweetText) {
@@ -64,7 +64,7 @@ public class MentionsProcessor {
   private String getLearnDescription(String tweetText) {
     tweetText = tweetText.substring(tweetText.indexOf("learn") + 5);
     tweetText = tweetText.replaceAll("(?i:\\s*https://t.co/\\S+.*)", "");
-    if (tweetText.matches("\\s+\\S+.*")) {
+    if (tweetText.matches("\\s+\\S+[\\s\\S]*")) {
       tweetText = tweetText.replaceFirst("\\s+", "");
     }
     return tweetText;
