@@ -1,2 +1,2 @@
-application-prod.properties
-application-local.properties
+application-prod.yml
+application-local.yml
