@@ -5,8 +5,6 @@
 #
 #server:
 #  port: 3003
-#  servelet:
-#    context-path: /api/memebot
 #
 #auth:
 #  consumer:

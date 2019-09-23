@@ -5,8 +5,6 @@
 #
 #server:
 #  port: 3003
-#  servelet:
-#    context-path: /api/memebot
 #  ssl:
 #    key-store: PUT_PATH_HERE
 #    key-store-password: INSERT_PASSWORD_HERE

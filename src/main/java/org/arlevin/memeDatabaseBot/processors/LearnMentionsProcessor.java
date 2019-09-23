@@ -7,11 +7,9 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -56,27 +54,28 @@ public class LearnMentionsProcessor {
   }
 
   void process(JSONObject tweet, String description) {
-    List<String> urls = getUrls(tweet);
+    Map<String, Boolean> urls = getUrls(tweet);
     if (!urls.isEmpty()) {
       String userId = tweet.getJSONObject("user").getString("id_str");
       if (!userMemesRepository.findAllByUserIdAndDescription(userId, description).isPresent()) {
-        for (String url : urls) {
+        for (Map.Entry<String, Boolean> entry : urls.entrySet()){
           String sequenceNumber = mediaFileUtility.getSequenceNumber();
 
           UserMemesEntity userMemesEntity = UserMemesEntity.builder()
               .userId(userId)
               .description(description)
               .sequenceNumber(sequenceNumber)
-              .twitterMediaUrl(url)
+              .twitterMediaUrl(entry.getKey())
+              .isGif(entry.getValue())
               .build();
 
           userMemesRepository.save(userMemesEntity);
 
-          String fileSuffix = url.substring(url.lastIndexOf('.'));
+          String fileSuffix = entry.getKey().substring(entry.getKey().lastIndexOf('.'));
           if (fileSuffix.contains("?")) {
             fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
           }
-          downloadFile(url, mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
+          downloadFile(entry.getKey(), mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
         }
         postTweetService
             .postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✅️",
@@ -93,7 +92,7 @@ public class LearnMentionsProcessor {
     }
   }
 
-  private List<String> getUrls(JSONObject tweet) {
+  private Map<String, Boolean> getUrls(JSONObject tweet) {
 
     JSONArray medias = new JSONArray();
 
@@ -115,10 +114,10 @@ public class LearnMentionsProcessor {
 
     // if no media found, return empty list
     else if (medias.isEmpty()) {
-      return Collections.emptyList();
+      return Collections.emptyMap();
     }
 
-    return getMediaUrl(medias);
+    return getMediaUrls(medias);
   }
 
   private JSONArray getReplyToMedias(JSONObject originalTweet) {
@@ -162,18 +161,21 @@ public class LearnMentionsProcessor {
     return new JSONObject(responseEntity.getBody());
   }
 
-  private List<String> getMediaUrl(JSONArray medias) {
-    List<String> urls = new ArrayList<>();
+  private Map<String, Boolean> getMediaUrls(JSONArray medias) {
+    Map<String, Boolean> urls = new HashMap<>();
     for (int i = 0; i < medias.length(); i++) {
       JSONObject media = medias.getJSONObject(i);
       String twitterMediaUrl = "";
-      if (media.getString("type").equals("video") || media.getString("type")
-          .equals("animated_gif")) {
+      boolean isGif = false;
+      if (media.getString("type").equals("video")) {
         twitterMediaUrl = getVideoUrl(media);
+      } else if(media.getString("type").equals("animated_gif")) {
+        twitterMediaUrl = getVideoUrl(media);
+        isGif = true;
       } else {
         twitterMediaUrl = media.getString("media_url_https");
       }
-      urls.add(twitterMediaUrl);
+      urls.put(twitterMediaUrl, isGif);
     }
     return urls;
   }

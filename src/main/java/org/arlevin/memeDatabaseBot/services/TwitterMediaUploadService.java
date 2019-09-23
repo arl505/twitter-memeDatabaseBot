@@ -49,8 +49,8 @@ public class TwitterMediaUploadService {
     this.signatureUtility = signatureUtility;
   }
 
-  public String uploadMedia(String fileName) {
-    String mediaId = initUpload(fileName);
+  public String uploadMedia(String fileName, Boolean isGif) {
+    String mediaId = initUpload(fileName, isGif);
     appendProcessor(fileName, mediaId);
     boolean isMediaUploaded = finalizeUpload(mediaId);
     return (isMediaUploaded)
@@ -58,7 +58,7 @@ public class TwitterMediaUploadService {
         : null;
   }
 
-  private String initUpload(String fileName) {
+  private String initUpload(String fileName, boolean isGif) {
     String nonce = RandomStringUtils.randomAlphanumeric(42);
     String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
@@ -72,14 +72,12 @@ public class TwitterMediaUploadService {
     }
     String type = mimeType.split("/")[0];
     String media_category;
-    if (type.equals("video")) {
+    if (isGif) {
+      media_category = "TweetGif";
+    } else if (type.equals("video")) {
       media_category = "TweetVideo";
     } else {
-      if (mimeType.equals("image/gif")) {
-        media_category = "TweetGif";
-      } else {
-        media_category = "TweetImage";
-      }
+      media_category = "TweetImage";
     }
 
     Map<String, String> requestParamsMap = new HashMap();
@@ -137,7 +135,7 @@ public class TwitterMediaUploadService {
       // for a file say 8000424 bytes, this will round up to 9 MB,
       // upload the file 1/9th at a time: nine requests each with a 1/9th chunk of the file
       // if the file is < 1 MB, upload in 2 chunks each 1/2 of the toal file
-      Integer uploadedTotal = 0;
+      int uploadedTotal = 0;
       for (int i = 0; i < fileSizeMB.intValue(); i++) {
         if (fileSizeMB == 1L) {
           from = 0;
@@ -261,7 +259,8 @@ public class TwitterMediaUploadService {
       String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
 
       String signature = signatureUtility
-          .calculateStatusUpdateSignature("https://upload.twitter.com/1.1/media/upload.json", "GET", timestamp, nonce, signatureParams);
+          .calculateStatusUpdateSignature("https://upload.twitter.com/1.1/media/upload.json", "GET",
+              timestamp, nonce, signatureParams);
 
       HttpHeaders httpHeaders = new HttpHeaders();
       String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +

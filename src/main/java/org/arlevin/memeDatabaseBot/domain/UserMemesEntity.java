@@ -36,11 +36,15 @@ public class UserMemesEntity {
   @Column(name = "twitter_media_url")
   private String twitterMediaUrl;
 
+  @Column(name = "is_gif")
+  private Boolean isGif;
+
   @Data
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
   public static class UserMemesId implements Serializable {
+
     private String userId;
     private String description;
     private String sequenceNumber;
