@@ -198,7 +198,6 @@ public class LearnMentionsProcessor {
     if (twitterMediaUrl.equals("")) {
       twitterMediaUrl = variantsArray.getJSONObject(0).getString("url");
     }
-
     return twitterMediaUrl;
   }
 
