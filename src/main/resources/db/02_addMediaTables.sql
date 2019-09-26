@@ -1,6 +1,6 @@
 create table user_memes (
   user_id varchar(50) not null,
-  description varchar(240),
+  description varchar(500),
   sequence_number bigint unsigned,
   twitter_media_url varchar(100),
   primary key (user_id, description, sequence_number)

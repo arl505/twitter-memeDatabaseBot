@@ -32,7 +32,7 @@ public class MentionsProcessor {
     for (JSONObject tweet : tweets) {
       addMentionRecordToDb(tweet);
 
-      String tweetText = tweet.getString("text");
+      String tweetText = tweet.getString("full_text");
       tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("@memestorebot"));
 
       if (isValidLearnMention(tweetText)) {
@@ -41,7 +41,7 @@ public class MentionsProcessor {
         boolean removeEndUrl = tweet.get("is_quote_status").equals(true);
         postMentionsProcessor.process(tweet, getPostDescription(tweetText, removeEndUrl));
       } else {
-        log.info("Received an invalid mention: {}", tweet.getString("text"));
+        log.info("Received an invalid mention: {}", tweet.getString("full_text"));
       }
     }
   }
@@ -54,7 +54,7 @@ public class MentionsProcessor {
   }
 
   private boolean isValidLearnMention(String tweetText) {
-    return tweetText.matches("(?i:@memestorebot\\s+learn\\s*\\S+.*https://t.co/\\S+.*)");
+    return tweetText.matches("(?i:.*@memestorebot\\s+learn\\s*\\S+[\\s\\S]*)");
   }
 
   private boolean isValidPostMention(String tweetText) {
@@ -64,7 +64,7 @@ public class MentionsProcessor {
   private String getLearnDescription(String tweetText) {
     tweetText = tweetText.substring(tweetText.indexOf("learn") + 5);
     tweetText = tweetText.replaceAll("(?i:\\s*https://t.co/\\S+.*)", "");
-    if(tweetText.matches("\\s+\\S+.*")) {
+    if (tweetText.matches("\\s+\\S+[\\s\\S]*")) {
       tweetText = tweetText.replaceFirst("\\s+", "");
     }
     return tweetText;
@@ -73,11 +73,11 @@ public class MentionsProcessor {
   private String getPostDescription(String tweetText, boolean removeEndUrl) {
     tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("post") + 4);
 
-    if(tweetText.matches("\\s+\\S+.*")) {
+    if (tweetText.matches("\\s+\\S+.*")) {
       tweetText = tweetText.replaceFirst("\\s+", "");
     }
 
-    if(removeEndUrl) {
+    if (removeEndUrl) {
       tweetText = tweetText.replaceAll("(?i:\\s*https://t.co/\\S+.*)", "");
     }
     return tweetText;
