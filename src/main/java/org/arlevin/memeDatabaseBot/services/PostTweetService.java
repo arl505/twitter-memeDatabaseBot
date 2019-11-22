@@ -1,5 +1,7 @@
 package org.arlevin.memeDatabaseBot.services;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +18,8 @@ import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Service
+@Retry(name = "postTweet")
+@CircuitBreaker(name = "postTweet")
 public class PostTweetService {
 
   @Value("${auth.consumer.apiKey}")
@@ -38,7 +42,8 @@ public class PostTweetService {
 
     String url = "https://api.twitter.com/1.1/statuses/update.json";
 
-    String requestBody = "status" + "=" + signatureUtility.encode(tweetText) + "&in_reply_to_status_id=" + replyToId;
+    String requestBody =
+        "status" + "=" + signatureUtility.encode(tweetText) + "&in_reply_to_status_id=" + replyToId;
 
     Map<String, String> params = new HashMap<>();
     params.put("include_entities", "true");
