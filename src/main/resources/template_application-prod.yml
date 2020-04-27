@@ -1,15 +1,7 @@
 #spring:
 #  datasource:
-#    url: jdbc:mysql://localhost:3306/memebot?user=root&useSSL=false&serverTimezone=UTC
+#    url: jdbc:mysql://placeholder:3306/placeholder?user=placeholder&useSSL=false&serverTimezone=UTC
 #    password: INSERT_PASSWORD_HERE
-#
-#server:
-#  port: 3003
-#  ssl:
-#    key-store: PUT_PATH_HERE
-#    key-store-password: INSERT_PASSWORD_HERE
-#    keyStoreType: PKCS12
-#    keyAlias: tomcat
 #
 #auth:
 #  consumer:
@@ -20,9 +12,6 @@
 #    tokenSecret: PUT_VALUE_HERE
 #
 #pathPrefix: /var/lib/memebot/media
-#
-#security:
-#  require-ssl: true
 #
 #resilience4j:
 #  circuitbreaker:
