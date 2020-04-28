@@ -35,10 +35,10 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class TwitterMediaUploadService {
 
-  @Value("${auth.consumer.apiKey}")
+  @Value("${credentials.consumer.key}")
   private String consumerApiKey;
 
-  @Value("${auth.access.token}")
+  @Value("${credentials.access.key}")
   private String accessToken;
 
   private final SignatureUtility signatureUtility;

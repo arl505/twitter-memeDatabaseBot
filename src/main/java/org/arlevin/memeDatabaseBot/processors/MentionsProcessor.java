@@ -3,8 +3,9 @@ package org.arlevin.memeDatabaseBot.processors;
 import java.util.List;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.arlevin.memeDatabaseBot.domain.ProcessedMentionsEntity;
+import org.arlevin.memeDatabaseBot.entity.ProcessedMentionsEntity;
 import org.arlevin.memeDatabaseBot.repositories.ProcessedMentionsRepository;
+import org.arlevin.memeDatabaseBot.service.ProcessLearnMemeMentionsService;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,13 +18,13 @@ public class MentionsProcessor {
   private String pathPrefix;
 
   private final ProcessedMentionsRepository processedMentionsRepository;
-  private final LearnMentionsProcessor learnMentionsProcessor;
+  private final ProcessLearnMemeMentionsService processLearnMemeMentionsService;
   private final PostMentionsProcessor postMentionsProcessor;
 
   public MentionsProcessor(ProcessedMentionsRepository processedMentionsRepository,
-      LearnMentionsProcessor learnMentionsProcessor, PostMentionsProcessor postMentionsProcessor) {
+      ProcessLearnMemeMentionsService processLearnMemeMentionsService, PostMentionsProcessor postMentionsProcessor) {
     this.processedMentionsRepository = processedMentionsRepository;
-    this.learnMentionsProcessor = learnMentionsProcessor;
+    this.processLearnMemeMentionsService = processLearnMemeMentionsService;
     this.postMentionsProcessor = postMentionsProcessor;
   }
 
@@ -36,7 +37,7 @@ public class MentionsProcessor {
       tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("@memestorebot"));
 
       if (isValidLearnMention(tweetText)) {
-        learnMentionsProcessor.process(tweet, getLearnDescription(tweetText));
+        processLearnMemeMentionsService.process(tweet, getLearnDescription(tweetText));
       } else if (isValidPostMention(tweetText)) {
         boolean removeEndUrl = tweet.get("is_quote_status").equals(true);
         postMentionsProcessor.process(tweet, getPostDescription(tweetText, removeEndUrl));

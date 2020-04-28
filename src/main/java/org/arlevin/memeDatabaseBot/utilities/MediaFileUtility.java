@@ -1,6 +1,6 @@
 package org.arlevin.memeDatabaseBot.utilities;
 
-import org.arlevin.memeDatabaseBot.domain.SequenceNumberEntity;
+import org.arlevin.memeDatabaseBot.entity.SequenceNumberEntity;
 import org.arlevin.memeDatabaseBot.repositories.SequenceNumberRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

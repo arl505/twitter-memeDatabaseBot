@@ -22,16 +22,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class SignatureUtility {
 
-  @Value("${auth.consumer.apiKey}")
+  @Value("${credentials.consumer.key}")
   private String consumerApiKey;
 
-  @Value("${auth.consumer.apiSecretKey}")
+  @Value("${credentials.consumer.secret}")
   private String consumerApiSecretKey;
 
-  @Value("${auth.access.token}")
+  @Value("${credentials.access.key}")
   private String accessToken;
 
-  @Value("${auth.access.tokenSecret}")
+  @Value("${credentials.access.secret}")
   private String accessTokenSecret;
 
   public String calculateStatusUpdateSignature(String url, String method, String timestamp,

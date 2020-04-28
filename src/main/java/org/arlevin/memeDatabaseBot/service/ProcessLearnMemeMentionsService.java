@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.processors;
+package org.arlevin.memeDatabaseBot.service;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -8,58 +8,57 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.arlevin.memeDatabaseBot.domain.UserMemesEntity;
+import org.arlevin.memeDatabaseBot.client.TwitterClient;
+import org.arlevin.memeDatabaseBot.entity.UserMemesEntity;
 import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
 import org.arlevin.memeDatabaseBot.services.PostTweetService;
 import org.arlevin.memeDatabaseBot.utilities.MediaFileUtility;
-import org.arlevin.memeDatabaseBot.utilities.SignatureUtility;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.stereotype.Service;
 
 @Slf4j
-@Component
-public class LearnMentionsProcessor {
+@Service
+public class ProcessLearnMemeMentionsService {
 
-  @Value("${auth.consumer.apiKey}")
+  @Value("${credentials.consumer.key}")
   private String consumerApiKey;
 
-  @Value("${auth.access.token}")
+  @Value("${credentials.access.key}")
   private String accessToken;
+
+  private static final String SHOW_STATUS_API_PATH = "/1.1/statuses/show.json";
 
   private final UserMemesRepository userMemesRepository;
   private final MediaFileUtility mediaFileUtility;
   private final PostTweetService postTweetService;
-  private final SignatureUtility signatureUtility;
+  private final TwitterClient twitterClient;
 
-  public LearnMentionsProcessor(UserMemesRepository userMemesRepository,
-      MediaFileUtility mediaFileUtility,
-      PostTweetService postTweetService,
-      SignatureUtility signatureUtility) {
+  public ProcessLearnMemeMentionsService(final UserMemesRepository userMemesRepository,
+      final MediaFileUtility mediaFileUtility,
+      final PostTweetService postTweetService,
+      final TwitterClient twitterClient) {
     this.userMemesRepository = userMemesRepository;
     this.mediaFileUtility = mediaFileUtility;
     this.postTweetService = postTweetService;
-    this.signatureUtility = signatureUtility;
+    this.twitterClient = twitterClient;
   }
 
-  void process(JSONObject tweet, String description) {
-    Map<String, Boolean> urls = getUrls(tweet);
-    if (!urls.isEmpty()) {
-      String userId = tweet.getJSONObject("user").getString("id_str");
+  public void process(final JSONObject tweet, final String description) {
+    final Map<String, Boolean> medias = getMediaMapFromTweet(tweet);
+
+    if (!medias.isEmpty()) {
+      final String userId = tweet.getJSONObject("user").getString("id_str");
+
       if (!userMemesRepository.findAllByUserIdAndDescription(userId, description).isPresent()) {
-        for (Map.Entry<String, Boolean> entry : urls.entrySet()){
-          String sequenceNumber = mediaFileUtility.getSequenceNumber();
+        for (final Map.Entry<String, Boolean> entry : medias.entrySet()) {
+          final String sequenceNumber = mediaFileUtility.getSequenceNumber();
 
           UserMemesEntity userMemesEntity = UserMemesEntity.builder()
               .userId(userId)
@@ -88,11 +87,12 @@ public class LearnMentionsProcessor {
             null);
       }
     } else {
-      log.info("Received a learn request with no media attached");
+      log.info("Received a learn request with no media attached with the description ({})",
+          description);
     }
   }
 
-  private Map<String, Boolean> getUrls(JSONObject tweet) {
+  private Map<String, Boolean> getMediaMapFromTweet(final JSONObject tweet) {
 
     JSONArray medias = new JSONArray();
 
@@ -109,7 +109,7 @@ public class LearnMentionsProcessor {
 
     // if inReplyTo tweet exists, try and get media from it
     else if (!tweet.isNull("in_reply_to_status_id_str")) {
-      medias = getReplyToMedias(tweet);
+      medias = getMediasFromInResponseToTweet(tweet);
     }
 
     // if no media found, return empty list
@@ -117,13 +117,13 @@ public class LearnMentionsProcessor {
       return Collections.emptyMap();
     }
 
-    return getMediaUrls(medias);
+    return getMediaMapFromMediasArray(medias);
   }
 
-  private JSONArray getReplyToMedias(JSONObject originalTweet) {
-    String inReplyToTweetId = originalTweet.getString("in_reply_to_status_id_str");
+  private JSONArray getMediasFromInResponseToTweet(final JSONObject originalTweet) {
+    final String inReplyToTweetId = originalTweet.getString("in_reply_to_status_id_str");
 
-    JSONObject inReplyToTweet = getInReplyToTweet(inReplyToTweetId);
+    final JSONObject inReplyToTweet = getInReplyToTweet(inReplyToTweetId);
 
     if (inReplyToTweet.has("extended_entities")) {
       return inReplyToTweet.getJSONObject("extended_entities").getJSONArray("media");
@@ -131,46 +131,28 @@ public class LearnMentionsProcessor {
     return new JSONArray();
   }
 
-  private JSONObject getInReplyToTweet(String tweetId) {
-    RestTemplate restTemplate = new RestTemplate();
-    String url = "https://api.twitter.com/1.1/statuses/show.json";
-
-    String nonce = RandomStringUtils.randomAlphanumeric(42);
-    String timestamp = Integer.toString((int) (new Date().getTime() / 1000));
-
-    Map<String, String> signatureParams = new HashMap<>();
+  private JSONObject getInReplyToTweet(final String tweetId) {
+    final Map<String, String> signatureParams = new HashMap<>();
     signatureParams.put("tweet_mode", "extended");
     signatureParams.put("id", tweetId);
 
-    String signature = signatureUtility
-        .calculateStatusUpdateSignature(url, "GET", timestamp, nonce, signatureParams);
-
-    HttpHeaders httpHeaders = new HttpHeaders();
-    String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerApiKey + "\", " +
-        "oauth_nonce=\"" + nonce + "\", " +
-        "oauth_signature=\"" + signature + "\", " +
-        "oauth_signature_method=\"HMAC-SHA1\", " +
-        "oauth_timestamp=\"" + timestamp + "\", " +
-        "oauth_token=\"" + accessToken + "\", " +
-        "oauth_version=\"1.0\"";
-    httpHeaders.add("Authorization", authHeaderText);
-    HttpEntity entity = new HttpEntity(httpHeaders);
-
-    ResponseEntity<String> responseEntity = restTemplate
-        .exchange(url + "?tweet_mode=extended&id=" + tweetId, HttpMethod.GET, entity, String.class);
+    ResponseEntity<String> responseEntity = twitterClient
+        .makeRequest(HttpMethod.GET, SHOW_STATUS_API_PATH, signatureParams);
     return new JSONObject(responseEntity.getBody());
   }
 
-  private Map<String, Boolean> getMediaUrls(JSONArray medias) {
-    Map<String, Boolean> urls = new HashMap<>();
+  private Map<String, Boolean> getMediaMapFromMediasArray(final JSONArray medias) {
+    final Map<String, Boolean> urls = new HashMap<>();
     for (int i = 0; i < medias.length(); i++) {
-      JSONObject media = medias.getJSONObject(i);
+      final JSONObject media = medias.getJSONObject(i);
       String twitterMediaUrl = "";
       boolean isGif = false;
       if (media.getString("type").equals("video")) {
-        twitterMediaUrl = getVideoUrl(media);
-      } else if(media.getString("type").equals("animated_gif")) {
-        twitterMediaUrl = getVideoUrl(media);
+        twitterMediaUrl = getOptimalVideoUrl(
+            media.getJSONObject("video_info").getJSONArray("variants"));
+      } else if (media.getString("type").equals("animated_gif")) {
+        twitterMediaUrl = getOptimalVideoUrl(
+            media.getJSONObject("video_info").getJSONArray("variants"));
         isGif = true;
       } else {
         twitterMediaUrl = media.getString("media_url_https");
@@ -180,11 +162,7 @@ public class LearnMentionsProcessor {
     return urls;
   }
 
-  private String getVideoUrl(JSONObject media) {
-    JSONArray variantsArray = media
-        .getJSONObject("video_info")
-        .getJSONArray("variants");
-
+  private String getOptimalVideoUrl(final JSONArray variantsArray) {
     String twitterMediaUrl = "";
     int bitrate = 0;
     for (int j = 0; j < variantsArray.length(); j++) {
@@ -204,21 +182,26 @@ public class LearnMentionsProcessor {
     return twitterMediaUrl;
   }
 
-  private void downloadFile(String url, String fileName) {
-    File file = new File(fileName);
+  private void downloadFile(final String url, final String fileName) {
+    final File file = new File(fileName);
     file.getParentFile().mkdirs();
 
+    ReadableByteChannel readableByteChannel = null;
     try {
-      URL urlStream = new URL(url);
-      ReadableByteChannel readableByteChannel = Channels.newChannel(urlStream.openStream());
-      FileOutputStream fileOutputStream = new FileOutputStream(fileName);
-      FileChannel fileChannel = fileOutputStream.getChannel();
+      final URL urlStream = new URL(url);
+      readableByteChannel = Channels.newChannel(urlStream.openStream());
+    } catch (final Exception e) {
+      log.error("An exception occurred while connecting to media url {}\n", url, e);
+    }
+    try {
+      final FileOutputStream fileOutputStream = new FileOutputStream(fileName);
+      final FileChannel fileChannel = fileOutputStream.getChannel();
       fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
       fileOutputStream.close();
       fileChannel.close();
       readableByteChannel.close();
-    } catch (IOException e) {
-      log.error("Could not open twitter url ({}): {}", url, e.toString());
+    } catch (final IOException e) {
+      log.error("Could not save downloaded media to file {}: ", fileName, e);
     }
   }
 }

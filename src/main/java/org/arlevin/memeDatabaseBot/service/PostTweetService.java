@@ -22,10 +22,10 @@ import org.springframework.web.client.RestTemplate;
 @CircuitBreaker(name = "postTweet")
 public class PostTweetService {
 
-  @Value("${auth.consumer.apiKey}")
+  @Value("${credentials.consumer.key}")
   private String consumerApiKey;
 
-  @Value("${auth.access.token}")
+  @Value("${credentials.access.key}")
   private String accessToken;
 
   private SignatureUtility signatureUtility;
@@ -70,6 +70,7 @@ public class PostTweetService {
     httpHeaders.add("Authorization", authHeaderText);
 
     HttpEntity request = new HttpEntity(requestBody, httpHeaders);
+
     restTemplate.postForObject(url + "?include_entities=true", request, String.class);
   }
 }

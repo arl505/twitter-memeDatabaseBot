@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.domain;
+package org.arlevin.memeDatabaseBot.entity;
 
 import java.io.Serializable;
 import javax.persistence.Column;
@@ -9,14 +9,15 @@ import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.arlevin.memeDatabaseBot.domain.UserMemesEntity.UserMemesId;
+import org.arlevin.memeDatabaseBot.entity.UserMemesEntity.UserMemesId;
 
 @Data
 @Builder
 @Entity
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "user_memes")
 @IdClass(UserMemesId.class)
 public class UserMemesEntity {
@@ -39,10 +40,7 @@ public class UserMemesEntity {
   @Column(name = "is_gif")
   private Boolean isGif;
 
-  @Data
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
+  @EqualsAndHashCode
   public static class UserMemesId implements Serializable {
 
     private String userId;

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.arlevin.memeDatabaseBot.domain.UserMemesEntity;
+import org.arlevin.memeDatabaseBot.entity.UserMemesEntity;
 import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
 import org.arlevin.memeDatabaseBot.services.PostTweetService;
 import org.arlevin.memeDatabaseBot.services.TwitterMediaUploadService;

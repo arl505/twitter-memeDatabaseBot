@@ -6,13 +6,13 @@
 #server:
 #  port: 3003
 #
-#auth:
+#credentials:
 #  consumer:
-#    apiKey: PUT_VALUE_HERE
-#    apiSecretKey: PUT_VALUE_HERE
+#    key: PUT_VALUE_HERE
+#    secret: PUT_VALUE_HERE
 #  access:
-#    token: PUT_VALUE_HERE
-#    tokenSecret: PUT_VALUE_HERE
+#    key: PUT_VALUE_HERE
+#    secret: PUT_VALUE_HERE
 #
 #pathPrefix: /Users/Alec/Desktop/writeToFolder
 #
