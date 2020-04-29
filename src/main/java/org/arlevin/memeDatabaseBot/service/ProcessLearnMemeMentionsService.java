@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memeDatabaseBot.client.TwitterClient;
 import org.arlevin.memeDatabaseBot.entity.UserMemesEntity;
 import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
-import org.arlevin.memeDatabaseBot.services.PostTweetService;
 import org.arlevin.memeDatabaseBot.utilities.MediaFileUtility;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,16 +36,13 @@ public class ProcessLearnMemeMentionsService {
 
   private final UserMemesRepository userMemesRepository;
   private final MediaFileUtility mediaFileUtility;
-  private final PostTweetService postTweetService;
   private final TwitterClient twitterClient;
 
   public ProcessLearnMemeMentionsService(final UserMemesRepository userMemesRepository,
       final MediaFileUtility mediaFileUtility,
-      final PostTweetService postTweetService,
       final TwitterClient twitterClient) {
     this.userMemesRepository = userMemesRepository;
     this.mediaFileUtility = mediaFileUtility;
-    this.postTweetService = postTweetService;
     this.twitterClient = twitterClient;
   }
 
@@ -55,8 +51,12 @@ public class ProcessLearnMemeMentionsService {
 
     if (!medias.isEmpty()) {
       final String userId = tweet.getJSONObject("user").getString("id_str");
+      final String tweetId = tweet.getString("id_str");
 
       if (!userMemesRepository.findAllByUserIdAndDescription(userId, description).isPresent()) {
+        log.info("Received a learn request with tweetId {} from userId {}, with description {}",
+            tweetId, userId, description);
+
         for (final Map.Entry<String, Boolean> entry : medias.entrySet()) {
           final String sequenceNumber = mediaFileUtility.getSequenceNumber();
 
@@ -68,23 +68,50 @@ public class ProcessLearnMemeMentionsService {
               .isGif(entry.getValue())
               .build();
 
+          log.info("Saving meme record for tweetId {} from userId {} with sequence number {}",
+              tweetId, userId, sequenceNumber);
           userMemesRepository.save(userMemesEntity);
 
           String fileSuffix = entry.getKey().substring(entry.getKey().lastIndexOf('.'));
           if (fileSuffix.contains("?")) {
             fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
           }
-          downloadFile(entry.getKey(), mediaFileUtility.getFileName(sequenceNumber, fileSuffix));
+          final String fileName = mediaFileUtility.getFileName(sequenceNumber, fileSuffix);
+
+          log.info("Downloading file from {} to {}", entry.getKey(), fileName);
+          downloadFile(entry.getKey(), fileName);
+          log.info("Successfully download file from {} to {}", entry.getKey(), fileName);
         }
-        postTweetService
-            .postTweet('@' + tweet.getJSONObject("user").getString("screen_name") + "✅️",
-                tweet.getString("id_str"), null);
+        log.info(
+            "Successfully downloaded all media for tweetId {} from userId {} with description {}",
+            tweetId, userId, description);
+        log.info("Posting learn request received response to twitter in response to tweetId {}",
+            tweetId);
+
+        final Map<String, String> params = new HashMap<>();
+        params.put("status", '@' + tweet.getJSONObject("user").getString("screen_name") + "✅️");
+        params.put("in_reply_to_status_id", tweet.getString("id_str"));
+        params.put("include_entities", "true");
+
+        twitterClient.makeRequest(HttpMethod.POST, "/1.1/statuses/update.json", params);
+        log.info(
+            "Succefully posted learn request received response to twitter in response to tweetId {}",
+            tweetId);
       } else {
         log.info("Received a learn request with an already in use description {} from userId {}",
             description, userId);
-        postTweetService.postTweet("@" + tweet.getJSONObject("user").getString("screen_name")
-                + " You already have a meme saved with that description", tweet.getString("id_str"),
-            null);
+
+        final Map<String, String> params = new HashMap<>();
+        params.put("status", "@" + tweet.getJSONObject("user").getString("screen_name")
+            + " You already have a meme saved with that description");
+        params.put("in_reply_to_status_id", tweet.getString("id_str"));
+        params.put("include_entities", "true");
+
+        twitterClient.makeRequest(HttpMethod.POST, "/1.1/statuses/update.json", params);
+
+        log.info(
+            "Succefully posted failed learn request received response to twitter in response to tweetId {}",
+            tweetId);
       }
     } else {
       log.info("Received a learn request with no media attached with the description ({})",
@@ -188,14 +215,17 @@ public class ProcessLearnMemeMentionsService {
 
     ReadableByteChannel readableByteChannel = null;
     try {
+      log.info("Opening connection to media url {} ...", url);
       final URL urlStream = new URL(url);
       readableByteChannel = Channels.newChannel(urlStream.openStream());
     } catch (final Exception e) {
       log.error("An exception occurred while connecting to media url {}\n", url, e);
     }
     try {
+      log.info("Opening file to save to...");
       final FileOutputStream fileOutputStream = new FileOutputStream(fileName);
       final FileChannel fileChannel = fileOutputStream.getChannel();
+      log.info("Writing to file...");
       fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
       fileOutputStream.close();
       fileChannel.close();

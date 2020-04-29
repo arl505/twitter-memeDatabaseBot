@@ -1,64 +1,67 @@
-package org.arlevin.memeDatabaseBot.processors;
+package org.arlevin.memeDatabaseBot.service;
 
 import java.util.List;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memeDatabaseBot.entity.ProcessedMentionsEntity;
+import org.arlevin.memeDatabaseBot.service.ProcessPostMemeMentionsService;
 import org.arlevin.memeDatabaseBot.repositories.ProcessedMentionsRepository;
 import org.arlevin.memeDatabaseBot.service.ProcessLearnMemeMentionsService;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 @Slf4j
-@Component
-public class MentionsProcessor {
-
-  @Value("${pathPrefix}")
-  private String pathPrefix;
+@Service
+public class SortMentionsService {
 
   private final ProcessedMentionsRepository processedMentionsRepository;
   private final ProcessLearnMemeMentionsService processLearnMemeMentionsService;
-  private final PostMentionsProcessor postMentionsProcessor;
+  private final ProcessPostMemeMentionsService processPostMemeMentionsService;
 
-  public MentionsProcessor(ProcessedMentionsRepository processedMentionsRepository,
-      ProcessLearnMemeMentionsService processLearnMemeMentionsService, PostMentionsProcessor postMentionsProcessor) {
+  public SortMentionsService(final ProcessedMentionsRepository processedMentionsRepository,
+      final ProcessLearnMemeMentionsService processLearnMemeMentionsService,
+      final ProcessPostMemeMentionsService processPostMemeMentionsService) {
     this.processedMentionsRepository = processedMentionsRepository;
     this.processLearnMemeMentionsService = processLearnMemeMentionsService;
-    this.postMentionsProcessor = postMentionsProcessor;
+    this.processPostMemeMentionsService = processPostMemeMentionsService;
   }
 
   @Transactional
-  public void process(List<JSONObject> tweets) {
-    for (JSONObject tweet : tweets) {
-      addMentionRecordToDb(tweet);
+  public void process(final List<JSONObject> tweets) {
+    for (final JSONObject tweet : tweets) {
+      final String tweetId = tweet.getString("id_str");
+      log.info("Saving processed mention with id {} to database...", tweetId);
+      addMentionRecordToDb(tweetId);
 
       String tweetText = tweet.getString("full_text");
       tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("@memestorebot"));
 
       if (isValidLearnMention(tweetText)) {
+        log.info("Found valid learn mention with id {}, processing...", tweetId);
         processLearnMemeMentionsService.process(tweet, getLearnDescription(tweetText));
       } else if (isValidPostMention(tweetText)) {
+        log.info("Found valid post mention with id {}, processing...", tweetId);
         boolean removeEndUrl = tweet.get("is_quote_status").equals(true);
-        postMentionsProcessor.process(tweet, getPostDescription(tweetText, removeEndUrl));
+        processPostMemeMentionsService.process(tweet, getPostDescription(tweetText, removeEndUrl));
       } else {
         log.info("Received an invalid mention: {}", tweet.getString("full_text"));
       }
     }
   }
 
-  private void addMentionRecordToDb(JSONObject tweet) {
-    ProcessedMentionsEntity processedMentionsEntity = ProcessedMentionsEntity.builder()
-        .tweetId(tweet.getString("id_str"))
+  private void addMentionRecordToDb(final String tweetId) {
+    final ProcessedMentionsEntity processedMentionsEntity = ProcessedMentionsEntity.builder()
+        .tweetId(tweetId)
         .build();
     processedMentionsRepository.save(processedMentionsEntity);
+    log.info("Saved processed mention record for tweet id {}", tweetId);
   }
 
-  private boolean isValidLearnMention(String tweetText) {
+  private boolean isValidLearnMention(final String tweetText) {
     return tweetText.matches("(?i:.*@memestorebot\\s+learn\\s*\\S+[\\s\\S]*)");
   }
 
-  private boolean isValidPostMention(String tweetText) {
+  private boolean isValidPostMention(final String tweetText) {
     return tweetText.matches("(?i:@memestorebot\\s+post\\s*\\S+.*)");
   }
 
@@ -71,7 +74,7 @@ public class MentionsProcessor {
     return tweetText;
   }
 
-  private String getPostDescription(String tweetText, boolean removeEndUrl) {
+  private String getPostDescription(String tweetText, final boolean removeEndUrl) {
     tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("post") + 4);
 
     if (tweetText.matches("\\s+\\S+.*")) {
