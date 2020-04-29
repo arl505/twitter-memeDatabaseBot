@@ -12,9 +12,11 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memeDatabaseBot.client.TwitterClient;
+import org.arlevin.memeDatabaseBot.entity.SequenceNumberEntity;
 import org.arlevin.memeDatabaseBot.entity.UserMemesEntity;
+import org.arlevin.memeDatabaseBot.repositories.SequenceNumberRepository;
 import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
-import org.arlevin.memeDatabaseBot.utilities.MediaFileUtility;
+import org.arlevin.memeDatabaseBot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +28,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProcessLearnMemeMentionsService {
 
+  @Value("${pathPrefix}")
+  private String pathPrefix;
+
   @Value("${credentials.consumer.key}")
   private String consumerApiKey;
 
@@ -35,14 +40,14 @@ public class ProcessLearnMemeMentionsService {
   private static final String SHOW_STATUS_API_PATH = "/1.1/statuses/show.json";
 
   private final UserMemesRepository userMemesRepository;
-  private final MediaFileUtility mediaFileUtility;
+  private final SequenceNumberRepository sequenceNumberRepository;
   private final TwitterClient twitterClient;
 
   public ProcessLearnMemeMentionsService(final UserMemesRepository userMemesRepository,
-      final MediaFileUtility mediaFileUtility,
+      final SequenceNumberRepository sequenceNumberRepository,
       final TwitterClient twitterClient) {
     this.userMemesRepository = userMemesRepository;
-    this.mediaFileUtility = mediaFileUtility;
+    this.sequenceNumberRepository = sequenceNumberRepository;
     this.twitterClient = twitterClient;
   }
 
@@ -58,7 +63,7 @@ public class ProcessLearnMemeMentionsService {
             tweetId, userId, description);
 
         for (final Map.Entry<String, Boolean> entry : medias.entrySet()) {
-          final String sequenceNumber = mediaFileUtility.getSequenceNumber();
+          final String sequenceNumber = getSequenceNumber();
 
           UserMemesEntity userMemesEntity = UserMemesEntity.builder()
               .userId(userId)
@@ -76,7 +81,8 @@ public class ProcessLearnMemeMentionsService {
           if (fileSuffix.contains("?")) {
             fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
           }
-          final String fileName = mediaFileUtility.getFileName(sequenceNumber, fileSuffix);
+          final String fileName =
+              pathPrefix + GetFilenameFromSequenceNumUtil.getFileName(sequenceNumber, fileSuffix);
 
           log.info("Downloading file from {} to {}", entry.getKey(), fileName);
           downloadFile(entry.getKey(), fileName);
@@ -117,6 +123,16 @@ public class ProcessLearnMemeMentionsService {
       log.info("Received a learn request with no media attached with the description ({})",
           description);
     }
+  }
+
+  public String getSequenceNumber() {
+
+    // increment sequence by inserting new record
+    // delete all records less than new sequence number (should only be 1 record)
+    SequenceNumberEntity sequenceNumberEntity = sequenceNumberRepository
+        .save(new SequenceNumberEntity());
+    sequenceNumberRepository.deleteLessThanHighNum(sequenceNumberEntity.getSequenceNumber());
+    return sequenceNumberEntity.getSequenceNumber().toString();
   }
 
   private Map<String, Boolean> getMediaMapFromTweet(final JSONObject tweet) {

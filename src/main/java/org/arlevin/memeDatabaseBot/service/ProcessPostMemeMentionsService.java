@@ -10,8 +10,9 @@ import org.arlevin.memeDatabaseBot.client.TwitterClient;
 import org.arlevin.memeDatabaseBot.entity.UserMemesEntity;
 import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
 import org.arlevin.memeDatabaseBot.services.TwitterMediaUploadService;
-import org.arlevin.memeDatabaseBot.utilities.MediaFileUtility;
+import org.arlevin.memeDatabaseBot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
@@ -19,17 +20,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProcessPostMemeMentionsService {
 
+  @Value("${pathPrefix}")
+  private String pathPrefix;
+
   private final UserMemesRepository userMemesRepository;
-  private final MediaFileUtility mediaFileUtility;
   private final TwitterMediaUploadService twitterMediaUploadService;
   private final TwitterClient twitterClient;
 
   public ProcessPostMemeMentionsService(final UserMemesRepository userMemesRepository,
-      final MediaFileUtility mediaFileUtility,
       final TwitterMediaUploadService twitterMediaUploadService,
       final TwitterClient twitterClient) {
     this.userMemesRepository = userMemesRepository;
-    this.mediaFileUtility = mediaFileUtility;
     this.twitterMediaUploadService = twitterMediaUploadService;
     this.twitterClient = twitterClient;
   }
@@ -46,8 +47,8 @@ public class ProcessPostMemeMentionsService {
       log.info(
           "Received a post meme request mention with tweetId {} from userId {}, with description {}",
           replyToId, authorId, description);
-      log.info("{} media files found for meme from userId {} with desciption {}", authorId,
-          description);
+      log.info("{} media files found for meme from userId {} with desciption {}", memeData.get().size(),
+          authorId, description);
 
       final List<String> mediaIds = new ArrayList<>();
       for (final UserMemesEntity media : memeData.get()) {
@@ -57,18 +58,19 @@ public class ProcessPostMemeMentionsService {
           fileSuffix = fileSuffix.substring(0, fileSuffix.indexOf('?'));
         }
 
-        final String fileName = mediaFileUtility.getFileName(media.getSequenceNumber(), fileSuffix);
+        final String fileName =
+            pathPrefix + GetFilenameFromSequenceNumUtil.getFileName(media.getSequenceNumber(), fileSuffix);
 
         log.info("Uploading media file from {} to twitter", fileName);
         final String mediaId = twitterMediaUploadService.uploadMedia(fileName, media.getIsGif());
         log.info("Successfully uploaded media file from {} to twitter and received back mediaId {}",
-            mediaId);
+            fileName, mediaId);
         mediaIds.add(mediaId);
       }
       if (!mediaIds.isEmpty()) {
         log.info(
             "Succesfully uploaded {} media file(s), posting response tweet with media in response to tweetId {} from userId {}",
-            replyToId, authorId);
+            mediaIds.size(), replyToId, authorId);
 
         final Map<String, String> params = new HashMap<>();
         params.put("status", "@" + authorScreenName);
