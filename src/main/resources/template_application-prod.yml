@@ -7,23 +7,3 @@
 #    secret: PUT_VALUE_HERE
 #
 #pathPrefix: /var/lib/memebot/media
-#
-#resilience4j:
-#  circuitbreaker:
-#    backends:
-#      postTweet:
-#        slidingWindowSize: 5
-#        failureRateThreshold: 100
-#        waitDurationInOpenState: 20000
-#        minimumNumberOfCalls: 5
-#        permittedNumberOfCallsInHalfOpenState: 1
-#        ignoreExceptions:
-#          - org.springframework.web.client.HttpClientErrorException
-#  retry:
-#    backends:
-#      postTweet:
-#        maxRetryAttempts: 5
-#        retryExceptions:
-#          - org.springframework.web.client.HttpServerErrorException
-#        ignoreExceptions:
-#          - org.springframework.web.client.HttpClientErrorException
