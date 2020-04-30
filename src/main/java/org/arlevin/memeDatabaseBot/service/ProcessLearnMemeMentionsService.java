@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.service;
+package org.arlevin.memedatabasebot.service;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,12 +11,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.arlevin.memeDatabaseBot.client.TwitterClient;
-import org.arlevin.memeDatabaseBot.entity.SequenceNumberEntity;
-import org.arlevin.memeDatabaseBot.entity.UserMemesEntity;
-import org.arlevin.memeDatabaseBot.repositories.SequenceNumberRepository;
-import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
-import org.arlevin.memeDatabaseBot.util.GetFilenameFromSequenceNumUtil;
+import org.arlevin.memedatabasebot.client.TwitterClient;
+import org.arlevin.memedatabasebot.constant.StringConstants;
+import org.arlevin.memedatabasebot.entity.SequenceNumberEntity;
+import org.arlevin.memedatabasebot.entity.UserMemesEntity;
+import org.arlevin.memedatabasebot.repositories.SequenceNumberRepository;
+import org.arlevin.memedatabasebot.repositories.UserMemesRepository;
+import org.arlevin.memedatabasebot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class ProcessLearnMemeMentionsService {
 
   private static final String SHOW_STATUS_API_PATH = "/1.1/statuses/show.json";
 
+
   private final UserMemesRepository userMemesRepository;
   private final SequenceNumberRepository sequenceNumberRepository;
   private final TwitterClient twitterClient;
@@ -55,8 +57,8 @@ public class ProcessLearnMemeMentionsService {
     final Map<String, Boolean> medias = getMediaMapFromTweet(tweet);
 
     if (!medias.isEmpty()) {
-      final String userId = tweet.getJSONObject("user").getString("id_str");
-      final String tweetId = tweet.getString("id_str");
+      final String userId = tweet.getJSONObject("user").getString(StringConstants.ID_STR);
+      final String tweetId = tweet.getString(StringConstants.ID_STR);
 
       if (!userMemesRepository.findAllByUserIdAndDescription(userId, description).isPresent()) {
         log.info("Received a learn request with tweetId {} from userId {}, with description {}",
@@ -95,7 +97,7 @@ public class ProcessLearnMemeMentionsService {
             tweetId);
 
         final String status = '@' + tweet.getJSONObject("user").getString("screen_name") + "✅️";
-        final String inReplyToStatusId = tweet.getString("id_str");
+        final String inReplyToStatusId = tweet.getString(StringConstants.ID_STR);
 
         final Map<String, String> params = new HashMap<>();
         params.put("status", status);
@@ -113,7 +115,7 @@ public class ProcessLearnMemeMentionsService {
 
         final String status = "@" + tweet.getJSONObject("user").getString("screen_name")
             + " You already have a meme saved with that description";
-        final String inReplyToStatusId = tweet.getString("id_str");
+        final String inReplyToStatusId = tweet.getString(StringConstants.ID_STR);
 
         final Map<String, String> params = new HashMap<>();
         params.put("status", status);
@@ -148,14 +150,15 @@ public class ProcessLearnMemeMentionsService {
     JSONArray medias = new JSONArray();
 
     // if media is directly attached to tweet
-    if (tweet.has("extended_entities")) {
-      medias = tweet.getJSONObject("extended_entities").getJSONArray("media");
+    if (tweet.has(StringConstants.EXTENDED_ENTITIES)) {
+      medias = tweet.getJSONObject(StringConstants.EXTENDED_ENTITIES)
+          .getJSONArray(StringConstants.MEDIA);
     }
 
     // if media is in quoted tweet
     else if (tweet.has("quoted_status")) {
-      medias = tweet.getJSONObject("quoted_status").getJSONObject("extended_entities")
-          .getJSONArray("media");
+      medias = tweet.getJSONObject("quoted_status").getJSONObject(StringConstants.EXTENDED_ENTITIES)
+          .getJSONArray(StringConstants.MEDIA);
     }
 
     // if inReplyTo tweet exists, try and get media from it
@@ -176,8 +179,9 @@ public class ProcessLearnMemeMentionsService {
 
     final JSONObject inReplyToTweet = getInReplyToTweet(inReplyToTweetId);
 
-    if (inReplyToTweet.has("extended_entities")) {
-      return inReplyToTweet.getJSONObject("extended_entities").getJSONArray("media");
+    if (inReplyToTweet.has(StringConstants.EXTENDED_ENTITIES)) {
+      return inReplyToTweet.getJSONObject(StringConstants.EXTENDED_ENTITIES)
+          .getJSONArray(StringConstants.MEDIA);
     }
     return new JSONArray();
   }
@@ -218,10 +222,10 @@ public class ProcessLearnMemeMentionsService {
     int bitrate = 0;
     for (int j = 0; j < variantsArray.length(); j++) {
       if (((variantsArray.getJSONObject(j).getString("content_type").equals("video/mp4")) && (
-          variantsArray.getJSONObject(j).getInt("bitrate") > bitrate))
+          variantsArray.getJSONObject(j).getInt(StringConstants.BITRATE) > bitrate))
           || ((j == variantsArray.length() - 1) && (bitrate == 0))) {
-        bitrate = (variantsArray.getJSONObject(j).has("bitrate"))
-            ? variantsArray.getJSONObject(j).getInt("bitrate")
+        bitrate = (variantsArray.getJSONObject(j).has(StringConstants.BITRATE))
+            ? variantsArray.getJSONObject(j).getInt(StringConstants.BITRATE)
             : 0;
         twitterMediaUrl = variantsArray.getJSONObject(j).getString("url");
       }
@@ -235,8 +239,13 @@ public class ProcessLearnMemeMentionsService {
 
   private void downloadFile(final String url, final String fileName) {
     final File file = new File(fileName);
-    file.getParentFile().mkdirs();
-
+    try {
+      if (!file.getParentFile().mkdirs() || file.createNewFile()) {
+        log.error("Unable to create directory or file to download media into");
+      }
+    } catch (IOException e) {
+      log.error("Unable to create directory or file to download media into: ", e);
+    }
     ReadableByteChannel readableByteChannel = null;
     try {
       log.info("Opening connection to media url {} ...", url);

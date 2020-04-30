@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.service;
+package org.arlevin.memedatabasebot.service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.arlevin.memeDatabaseBot.client.TwitterClient;
-import org.arlevin.memeDatabaseBot.entity.ProcessedMentionsEntity;
-import org.arlevin.memeDatabaseBot.repositories.ProcessedMentionsRepository;
+import org.arlevin.memedatabasebot.client.TwitterClient;
+import org.arlevin.memedatabasebot.entity.ProcessedMentionsEntity;
+import org.arlevin.memedatabasebot.repositories.ProcessedMentionsRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.HttpMethod;

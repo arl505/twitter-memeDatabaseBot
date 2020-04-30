@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.util;
+package org.arlevin.memedatabasebot.util;
 
 public class GetFilenameFromSequenceNumUtil {
 

@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.entity;
+package org.arlevin.memedatabasebot.entity;
 
 import java.io.Serializable;
 import javax.persistence.Column;
@@ -11,7 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.arlevin.memeDatabaseBot.entity.UserMemesEntity.UserMemesId;
+import org.arlevin.memedatabasebot.entity.UserMemesEntity.UserMemesId;
 
 @Data
 @Builder

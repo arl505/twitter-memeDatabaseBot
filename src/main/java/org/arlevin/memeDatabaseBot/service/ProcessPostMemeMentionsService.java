@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.service;
+package org.arlevin.memedatabasebot.service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.arlevin.memeDatabaseBot.client.TwitterClient;
-import org.arlevin.memeDatabaseBot.entity.UserMemesEntity;
-import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
-import org.arlevin.memeDatabaseBot.util.GetFilenameFromSequenceNumUtil;
+import org.arlevin.memedatabasebot.client.TwitterClient;
+import org.arlevin.memedatabasebot.entity.UserMemesEntity;
+import org.arlevin.memedatabasebot.repositories.UserMemesRepository;
+import org.arlevin.memedatabasebot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

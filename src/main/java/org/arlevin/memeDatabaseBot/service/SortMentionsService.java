@@ -1,10 +1,10 @@
-package org.arlevin.memeDatabaseBot.service;
+package org.arlevin.memedatabasebot.service;
 
 import java.util.List;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.arlevin.memeDatabaseBot.entity.ProcessedMentionsEntity;
-import org.arlevin.memeDatabaseBot.repositories.ProcessedMentionsRepository;
+import org.arlevin.memedatabasebot.entity.ProcessedMentionsEntity;
+import org.arlevin.memedatabasebot.repositories.ProcessedMentionsRepository;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
@@ -64,7 +64,7 @@ public class SortMentionsService {
   }
 
   private String getLearnDescription(String tweetText) {
-    tweetText = tweetText.substring(tweetText.indexOf("learn") + 5);
+    tweetText = tweetText.substring(tweetText.toLowerCase().indexOf("learn") + 5);
     tweetText = tweetText.replaceAll("(?i:\\s*https://t.co/\\S+.*)", "");
     if (tweetText.matches("\\s+\\S+[\\s\\S]*")) {
       tweetText = tweetText.replaceFirst("\\s+", "");

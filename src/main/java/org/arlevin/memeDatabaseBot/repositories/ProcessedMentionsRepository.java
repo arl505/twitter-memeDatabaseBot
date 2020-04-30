@@ -1,7 +1,7 @@
-package org.arlevin.memeDatabaseBot.repositories;
+package org.arlevin.memedatabasebot.repositories;
 
 import java.util.Optional;
-import org.arlevin.memeDatabaseBot.entity.ProcessedMentionsEntity;
+import org.arlevin.memedatabasebot.entity.ProcessedMentionsEntity;
 import org.springframework.data.repository.CrudRepository;
 
 public interface ProcessedMentionsRepository extends CrudRepository<ProcessedMentionsEntity, Long> {

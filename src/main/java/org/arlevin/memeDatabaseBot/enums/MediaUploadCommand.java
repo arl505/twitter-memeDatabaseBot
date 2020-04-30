@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.enums;
+package org.arlevin.memedatabasebot.enums;
 
 public enum MediaUploadCommand {
   INIT,

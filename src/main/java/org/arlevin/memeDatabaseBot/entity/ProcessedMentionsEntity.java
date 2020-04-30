@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.entity;
+package org.arlevin.memedatabasebot.entity;
 
 import java.time.Instant;
 import javax.persistence.Column;
