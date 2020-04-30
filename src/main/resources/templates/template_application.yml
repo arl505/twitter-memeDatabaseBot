@@ -5,5 +5,3 @@
 #  access:
 #    key: PUT_VALUE_HERE
 #    secret: PUT_VALUE_HERE
-#
-#pathPrefix: /var/lib/memebot/media
