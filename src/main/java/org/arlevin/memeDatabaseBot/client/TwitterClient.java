@@ -16,12 +16,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.arlevin.memeDatabaseBot.enums.MediaUploadCommand;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -29,58 +33,129 @@ import org.springframework.web.client.RestTemplate;
 public class TwitterClient {
 
   @Value("${credentials.consumer.key}")
-  private String CONSUMER_KEY;
+  private String consumerKey;
 
   @Value("${credentials.consumer.secret}")
-  private String CONSUMER_SECRET;
+  private String consumerSecret;
 
   @Value("${credentials.access.key}")
-  private String ACCESS_TOKEN;
+  private String accessKey;
 
   @Value("${credentials.access.secret}")
-  private String ACCESS_TOKEN_SECRET;
-
-  private static final String BASE_URL = "https://api.twitter.com";
+  private String accessSecret;
 
   private final RestTemplate restTemplate = new RestTemplate();
 
   public ResponseEntity<String> makeRequest(final HttpMethod httpMethod,
-      final String apiPath, final Map<String, String> requestParams) {
+      final String baseUrl, final Map<String, String> requestParams) {
 
     final int timestamp = (int) (new Date().getTime() / 1000);
     final String nonce = RandomStringUtils.randomAlphanumeric(42);
 
-    final String oauthSignature = generateSignature(httpMethod, apiPath, nonce, timestamp,
+    final String oauthSignature = generateSignature(httpMethod, baseUrl, nonce, timestamp,
         requestParams);
 
     final String authorizationHeaderString = "OAuth " +
-        "oauth_consumer_key=\"" + encode(CONSUMER_KEY) + "\", " +
+        "oauth_consumerKey=\"" + encode(consumerKey) + "\", " +
         "oauth_nonce=\"" + encode(nonce) + "\", " +
         "oauth_signature=\"" + encode(oauthSignature) + "\", " +
         "oauth_signature_method=\"" + encode("HMAC-SHA1") + "\", " +
         "oauth_timestamp=\"" + encode(Integer.toString(timestamp)) + "\", " +
-        "oauth_token=\"" + encode(ACCESS_TOKEN) + "\", " +
+        "oauth_token=\"" + encode(accessKey) + "\", " +
         "oauth_version=\"" + encode("1.0") + "\", ";
 
     final HttpHeaders headers = new HttpHeaders();
     headers.add("Authorization", authorizationHeaderString);
     final HttpEntity requestEntity = new HttpEntity(null, headers);
 
-    final String fullRequestUrl = generateFullRequestUrl(apiPath, requestParams);
+    final String fullRequestUrl = generateFullRequestUrl(baseUrl, requestParams);
 
     return restTemplate.exchange(fullRequestUrl, httpMethod, requestEntity, String.class);
   }
 
-  private String generateSignature(final HttpMethod httpMethod, final String apiPath,
+  public ResponseEntity<String> makeMediaUploadRequest(final MediaUploadCommand mediaUploadCommand,
+      final Map<String, String> params, final byte[] mediaData) {
+
+    final int timestamp = (int) (new Date().getTime() / 1000);
+    final String nonce = RandomStringUtils.randomAlphanumeric(42);
+
+    final String signature = generateSignature(HttpMethod.POST,
+        "https://upload.twitter.com/1.1/media/upload.json", nonce, timestamp, params);
+
+    final String authHeaderText = "OAuth oauth_consumerKey=\"" + consumerKey + "\", " +
+        "oauth_nonce=\"" + nonce + "\", " +
+        "oauth_signature=\"" + signature + "\", " +
+        "oauth_signature_method=\"HMAC-SHA1\", " +
+        "oauth_timestamp=\"" + timestamp + "\", " +
+        "oauth_token=\"" + accessKey + "\", " +
+        "oauth_version=\"1.0\"";
+
+    final HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    headers.add("Authorization", authHeaderText);
+
+    String requestBodyString = null;
+    HttpEntity request = null;
+    String requestUrl = null;
+    HttpMethod httpMethod = HttpMethod.POST;
+
+    switch (mediaUploadCommand) {
+      case INIT:
+
+        try {
+          requestBodyString = "command=INIT&total_bytes=" + params.get("total_bytes") + "&media_type="
+              + URLEncoder.encode(params.get("media_type"), "UTF-8") + "&media_category=" + params
+              .get("media_category");
+        } catch (UnsupportedEncodingException e) {
+          log.error("Could not encode mime type {}: ", params.get("media_type"), e);
+          return null;
+        }
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        request = new HttpEntity(requestBodyString, headers);
+        requestUrl = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true";
+        break;
+
+      case APPEND:
+
+        final MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("media_data", mediaData);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        request = new HttpEntity(body, headers);
+        requestUrl = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true"
+            + "&command=APPEND&media_id=" + params.get("media_id") + "&segment_index=" + params.get("segment_index");
+        break;
+
+      case FINALIZE:
+
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        request = new HttpEntity("command=FINALIZE&media_id=" + params.get("media_id"), headers);
+        requestUrl = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true";
+        break;
+
+      case STATUS:
+
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        requestUrl = "https://upload.twitter.com/1.1/media/upload.json?command=STATUS&media_id=" + params.get("media_id");
+        request = new HttpEntity(headers);
+        httpMethod = HttpMethod.GET;
+        break;
+
+      default:
+        return null;
+    }
+
+    return restTemplate.exchange(requestUrl, httpMethod, request, String.class);
+  }
+
+  private String generateSignature(final HttpMethod httpMethod, final String baseUrl,
       final String nonce, final int timestamp, final Map<String, String> additionalParams) {
 
-    final String requestUrl = BASE_URL + apiPath;
     final Map<String, String> sortedParamMap = new TreeMap<>();
-    sortedParamMap.put(encode("oauth_consumer_key"), encode(CONSUMER_KEY));
+    sortedParamMap.put(encode("oauth_consumerKey"), encode(consumerKey));
     sortedParamMap.put(encode("oauth_nonce"), encode(nonce));
     sortedParamMap.put(encode("oauth_signature_method"), encode("HMAC-SHA1"));
     sortedParamMap.put(encode("oauth_timestamp"), encode(Integer.toString(timestamp)));
-    sortedParamMap.put(encode("oauth_token"), encode(ACCESS_TOKEN));
+    sortedParamMap.put(encode("oauth_token"), encode(accessKey));
     sortedParamMap.put(encode("oauth_version"), encode("1.0"));
     for (final Entry<String, String> additionalParam : additionalParams.entrySet()) {
       sortedParamMap.put(encode(additionalParam.getKey()), encode(additionalParam.getValue()));
@@ -89,8 +164,8 @@ public class TwitterClient {
     final String parameterString = generateParameterString(sortedParamMap);
 
     final String signatureBaseString =
-        httpMethod.toString() + '&' + encode(requestUrl) + '&' + encode(parameterString);
-    final String signingKey = encode(CONSUMER_SECRET) + '&' + encode(ACCESS_TOKEN_SECRET);
+        httpMethod.toString() + '&' + encode(baseUrl) + '&' + encode(parameterString);
+    final String signingKey = encode(consumerSecret) + '&' + encode(accessSecret);
 
     return calculateSignatureWithKey(signatureBaseString, signingKey);
   }
@@ -107,8 +182,8 @@ public class TwitterClient {
     return parameterString.substring(0, parameterString.length() - 1);
   }
 
-  private String generateFullRequestUrl(final String apiPath, final Map<String, String> params) {
-    final StringBuilder fullRequestUrlBuilder = new StringBuilder(BASE_URL + apiPath);
+  private String generateFullRequestUrl(final String baseUrl, final Map<String, String> params) {
+    final StringBuilder fullRequestUrlBuilder = new StringBuilder(baseUrl);
     if (!params.isEmpty()) {
       fullRequestUrlBuilder.append('?');
       for (final Entry<String, String> param : params.entrySet()) {
@@ -158,7 +233,7 @@ public class TwitterClient {
   }
 
   private String toHexString(final byte[] bytes) {
-    try(final Formatter formatter = new Formatter()) {
+    try (final Formatter formatter = new Formatter()) {
       for (final byte b : bytes) {
         formatter.format("%02x", b);
       }

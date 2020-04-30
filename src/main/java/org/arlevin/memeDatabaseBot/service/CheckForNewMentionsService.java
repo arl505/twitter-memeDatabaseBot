@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class CheckForNewMentionsService {
 
-  private static final String GET_MENTIONS_API_PATH = "/1.1/statuses/mentions_timeline.json";
+  private static final String GET_MENTIONS_BASE_URL = "https://api.twitter.com/1.1/statuses/mentions_timeline.json";
 
   private final ProcessedMentionsRepository processedMentionsRepository;
   private final SortMentionsService sortMentionsService;
@@ -42,7 +42,7 @@ public class CheckForNewMentionsService {
 
     log.info("Calling twitter to get mentions");
     final ResponseEntity<String> responseEntity = twitterClient
-        .makeRequest(HttpMethod.GET, GET_MENTIONS_API_PATH, signatureParams);
+        .makeRequest(HttpMethod.GET, GET_MENTIONS_BASE_URL, signatureParams);
     final JSONArray response = new JSONArray(responseEntity.getBody());
 
     final List<JSONObject> newMentions = new ArrayList<>();

@@ -99,7 +99,7 @@ public class ProcessLearnMemeMentionsService {
         params.put("in_reply_to_status_id", tweet.getString("id_str"));
         params.put("include_entities", "true");
 
-        twitterClient.makeRequest(HttpMethod.POST, "/1.1/statuses/update.json", params);
+        twitterClient.makeRequest(HttpMethod.POST, "https://api.twitter.com/1.1/statuses/update.json", params);
         log.info(
             "Succefully posted learn request received response to twitter in response to tweetId {}",
             tweetId);
@@ -113,7 +113,7 @@ public class ProcessLearnMemeMentionsService {
         params.put("in_reply_to_status_id", tweet.getString("id_str"));
         params.put("include_entities", "true");
 
-        twitterClient.makeRequest(HttpMethod.POST, "/1.1/statuses/update.json", params);
+        twitterClient.makeRequest(HttpMethod.POST, "https://api.twitter.com/1.1/statuses/update.json", params);
 
         log.info(
             "Succefully posted failed learn request received response to twitter in response to tweetId {}",

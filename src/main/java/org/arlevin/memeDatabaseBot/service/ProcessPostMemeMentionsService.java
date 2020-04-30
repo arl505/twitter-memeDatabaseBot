@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memeDatabaseBot.client.TwitterClient;
 import org.arlevin.memeDatabaseBot.entity.UserMemesEntity;
 import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
-import org.arlevin.memeDatabaseBot.services.TwitterMediaUploadService;
 import org.arlevin.memeDatabaseBot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,6 +62,12 @@ public class ProcessPostMemeMentionsService {
 
         log.info("Uploading media file from {} to twitter", fileName);
         final String mediaId = twitterMediaUploadService.uploadMedia(fileName, media.getIsGif());
+
+        if(mediaId == null) {
+          log.error("Was unable to upload media file to twitter, aborting attempt to post meme response");
+          return;
+        }
+
         log.info("Successfully uploaded media file from {} to twitter and received back mediaId {}",
             fileName, mediaId);
         mediaIds.add(mediaId);
@@ -78,7 +83,7 @@ public class ProcessPostMemeMentionsService {
         params.put("include_entities", "true");
         params.put("media_ids", String.join(",", mediaIds));
 
-        twitterClient.makeRequest(HttpMethod.POST, "/1.1/statuses/update.json", params);
+        twitterClient.makeRequest(HttpMethod.POST, "https://api.twitter.com/1.1/statuses/update.json", params);
 
         log.info(
             "Successfully posted meme in response to tweetId {} from userId {} with description {}",
@@ -95,7 +100,7 @@ public class ProcessPostMemeMentionsService {
       params.put("in_reply_to_status_id", replyToId);
       params.put("include_entities", "true");
 
-      twitterClient.makeRequest(HttpMethod.POST, "/1.1/statuses/update.json", params);
+      twitterClient.makeRequest(HttpMethod.POST, "https://api.twitter.com/1.1/statuses/update.json", params);
 
       log.info(
           "Successfully posted failure response to tweetId {} from userId {} with description {}",
