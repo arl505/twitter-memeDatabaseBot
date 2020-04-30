@@ -47,6 +47,7 @@ public class TwitterClient {
 
   private final RestTemplate restTemplate = new RestTemplate();
 
+  // for simple, generic requests, like getting statuses
   public ResponseEntity<String> makeRequest(final HttpMethod httpMethod,
       final String baseUrl, final Map<String, String> requestParams) {
 
@@ -74,6 +75,8 @@ public class TwitterClient {
     return restTemplate.exchange(fullRequestUrl, httpMethod, requestEntity, String.class);
   }
 
+  // for making the various media upload requests to perform chunked media upload
+  // takes required params for each request type to form appropriate request
   public ResponseEntity<String> makeMediaUploadRequest(final MediaUploadCommand mediaUploadCommand,
       final Map<String, String> params, final byte[] mediaData) {
 
@@ -150,6 +153,7 @@ public class TwitterClient {
     return restTemplate.exchange(requestUrl, httpMethod, request, String.class);
   }
 
+  // for making update status requests in response to mentions
   public void makeUpdateStatusRequest(final String status, final String replyToId,
       final String mediaIds) {
     final int timestamp = (int) (new Date().getTime() / 1000);

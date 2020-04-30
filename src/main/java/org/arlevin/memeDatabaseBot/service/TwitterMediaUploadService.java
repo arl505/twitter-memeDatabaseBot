@@ -46,6 +46,7 @@ public class TwitterMediaUploadService {
           ? mediaId
           : null;
     }
+    log.error("An issue occurred while making upload INIT request to twitter");
     return null;
   }
 
@@ -77,6 +78,7 @@ public class TwitterMediaUploadService {
     params.put("media_type", mimeType);
     params.put("media_category", mediaCategory);
 
+    log.info("Sending twitter upload INIT request...");
     final ResponseEntity<String> responseEntity = twitterClient
         .makeMediaUploadRequest(MediaUploadCommand.INIT, params, null);
 
@@ -106,12 +108,12 @@ public class TwitterMediaUploadService {
           from = 0;
           to = fileBytes.length / 2;
           byte[] bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
-          log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
+          log.info("uploading bytes from (inclusive): {} to (exclusive): {}", from, to);
           sendAppendRequest(mediaId, 0, Base64.getEncoder().encode(bytesChunk));
 
           from = fileBytes.length / 2;
           to = fileBytes.length;
-          log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
+          log.info("uploading bytes from (inclusive): {} to (exclusive): {}", from, to);
           bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
           sendAppendRequest(mediaId, 1, Base64.getEncoder().encode(bytesChunk));
           return;
@@ -125,7 +127,7 @@ public class TwitterMediaUploadService {
         }
         byte[] bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
         uploadedTotal = uploadedTotal + bytesChunk.length;
-        log.info("uploading bytes from (inclusive): {} \nto (exclusive): {}", from, to);
+        log.info("uploading bytes from (inclusive): {} to (exclusive): {}", from, to);
         sendAppendRequest(mediaId, i, Base64.getEncoder().encode(bytesChunk));
         log.info("Uploaded {} bytes total", uploadedTotal);
       }
@@ -144,6 +146,7 @@ public class TwitterMediaUploadService {
     params.put("media_id", mediaId);
     params.put("segment_index", segmentIndex.toString());
 
+    log.info("Sending twitter upload APPEND request...");
     twitterClient.makeMediaUploadRequest(MediaUploadCommand.APPEND, params, mediaData);
   }
 
@@ -154,6 +157,7 @@ public class TwitterMediaUploadService {
     params.put("command", "FINALIZE");
     params.put("media_id", mediaId);
 
+    log.info("Sending twitter upload FINALIZE request...");
     final ResponseEntity<String> responseEntity = twitterClient
         .makeMediaUploadRequest(MediaUploadCommand.FINALIZE, params, null);
     final JSONObject response = new JSONObject(responseEntity.getBody());
@@ -161,33 +165,39 @@ public class TwitterMediaUploadService {
     int checkAfterSecs = 0;
     if (response.has("processing_info")) {
       checkAfterSecs = response.getJSONObject("processing_info").getInt("check_after_secs");
+      log.info("Processing info found, will wait {} seconds to check status", checkAfterSecs);
     }
     return checkStatus(mediaId, checkAfterSecs, 3);
   }
 
-  private boolean checkStatus(final String mediaId, final Integer checkAfterSecs, final Integer retryTimes) {
+  private boolean checkStatus(final String mediaId, final Integer checkAfterSecs,
+      final Integer retryTimes) {
     boolean isCompleted = false;
     try {
+      log.info("Sleeping for {} seconds", checkAfterSecs);
       TimeUnit.SECONDS.sleep(checkAfterSecs);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
       log.error("Sleeping for {} seconds threw an exception: {}", checkAfterSecs, e.toString());
     }
-
     final Map<String, String> params = new HashMap<>();
     params.put("command", "STATUS");
     params.put("media_id", mediaId);
 
+    log.info("Sending twitter upload STATUS request...");
     try {
       final ResponseEntity<String> responseEntity = twitterClient
           .makeMediaUploadRequest(MediaUploadCommand.STATUS, params, null);
       final JSONObject response = new JSONObject(responseEntity.getBody());
 
       if (response.getJSONObject("processing_info").getString("state").equals("succeeded")) {
+        log.info("Upload successfully completed, mediaId can now be used to in status update");
         isCompleted = true;
       } else if (retryTimes == 0) {
+        log.info("Retried checking the status the maxinum of times, unable to upload media");
         isCompleted = false;
       } else {
+        log.info("Upload not completed, will check status retry {} more times with 5 seconds sleep");
         return checkStatus(mediaId, 5, retryTimes - 1);
       }
     } catch (final HttpClientErrorException e) {
