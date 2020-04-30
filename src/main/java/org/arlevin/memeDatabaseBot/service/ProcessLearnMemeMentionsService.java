@@ -94,12 +94,16 @@ public class ProcessLearnMemeMentionsService {
         log.info("Posting learn request received response to twitter in response to tweetId {}",
             tweetId);
 
+        final String status = '@' + tweet.getJSONObject("user").getString("screen_name") + "✅️";
+        final String inReplyToStatusId = tweet.getString("id_str");
+
         final Map<String, String> params = new HashMap<>();
-        params.put("status", '@' + tweet.getJSONObject("user").getString("screen_name") + "✅️");
-        params.put("in_reply_to_status_id", tweet.getString("id_str"));
+        params.put("status", status);
+        params.put("in_reply_to_status_id", inReplyToStatusId);
         params.put("include_entities", "true");
 
-        twitterClient.makeRequest(HttpMethod.POST, "https://api.twitter.com/1.1/statuses/update.json", params);
+        twitterClient.makeUpdateStatusRequest(status, inReplyToStatusId, null);
+
         log.info(
             "Succefully posted learn request received response to twitter in response to tweetId {}",
             tweetId);
@@ -107,13 +111,17 @@ public class ProcessLearnMemeMentionsService {
         log.info("Received a learn request with an already in use description {} from userId {}",
             description, userId);
 
+        final String status = "@" + tweet.getJSONObject("user").getString("screen_name")
+            + " You already have a meme saved with that description";
+        final String inReplyToStatusId = tweet.getString("id_str");
+
         final Map<String, String> params = new HashMap<>();
-        params.put("status", "@" + tweet.getJSONObject("user").getString("screen_name")
-            + " You already have a meme saved with that description");
-        params.put("in_reply_to_status_id", tweet.getString("id_str"));
+        params.put("status", status);
+        params.put("in_reply_to_status_id", inReplyToStatusId);
         params.put("include_entities", "true");
 
-        twitterClient.makeRequest(HttpMethod.POST, "https://api.twitter.com/1.1/statuses/update.json", params);
+        twitterClient
+            .makeUpdateStatusRequest(status, inReplyToStatusId, null);
 
         log.info(
             "Succefully posted failed learn request received response to twitter in response to tweetId {}",

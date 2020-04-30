@@ -63,7 +63,7 @@ public class TwitterMediaUploadService {
     final String type = mimeType.split("/")[0];
     String mediaCategory;
     if (isGif) {
-      mediaCategory = "TweetGif";
+      mediaCategory = "TweetVideo";
     } else if (type.equals("video")) {
       mediaCategory = "TweetVideo";
     } else {

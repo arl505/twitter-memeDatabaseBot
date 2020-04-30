@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Formatter;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -56,13 +57,13 @@ public class TwitterClient {
         requestParams);
 
     final String authorizationHeaderString = "OAuth " +
-        "oauth_consumerKey=\"" + encode(consumerKey) + "\", " +
+        "oauth_consumer_key=\"" + encode(consumerKey) + "\", " +
         "oauth_nonce=\"" + encode(nonce) + "\", " +
         "oauth_signature=\"" + encode(oauthSignature) + "\", " +
         "oauth_signature_method=\"" + encode("HMAC-SHA1") + "\", " +
         "oauth_timestamp=\"" + encode(Integer.toString(timestamp)) + "\", " +
         "oauth_token=\"" + encode(accessKey) + "\", " +
-        "oauth_version=\"" + encode("1.0") + "\", ";
+        "oauth_version=\"" + encode("1.0") + "\"";
 
     final HttpHeaders headers = new HttpHeaders();
     headers.add("Authorization", authorizationHeaderString);
@@ -82,9 +83,9 @@ public class TwitterClient {
     final String signature = generateSignature(HttpMethod.POST,
         "https://upload.twitter.com/1.1/media/upload.json", nonce, timestamp, params);
 
-    final String authHeaderText = "OAuth oauth_consumerKey=\"" + consumerKey + "\", " +
+    final String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerKey + "\", " +
         "oauth_nonce=\"" + nonce + "\", " +
-        "oauth_signature=\"" + signature + "\", " +
+        "oauth_signature=\"" + encode(signature) + "\", " +
         "oauth_signature_method=\"HMAC-SHA1\", " +
         "oauth_timestamp=\"" + timestamp + "\", " +
         "oauth_token=\"" + accessKey + "\", " +
@@ -103,14 +104,14 @@ public class TwitterClient {
       case INIT:
 
         try {
-          requestBodyString = "command=INIT&total_bytes=" + params.get("total_bytes") + "&media_type="
-              + URLEncoder.encode(params.get("media_type"), "UTF-8") + "&media_category=" + params
-              .get("media_category");
-        } catch (UnsupportedEncodingException e) {
-          log.error("Could not encode mime type {}: ", params.get("media_type"), e);
+          requestBodyString =
+              "command=INIT&total_bytes=" + params.get("total_bytes") + "&media_type="
+                  + URLEncoder.encode(params.get("media_type"), "UTF-8") + "&media_category=" +
+                  params.get("media_category");
+        } catch (Exception e) {
+          log.error("Could not encode media_type {}: ", params.get("media_type"), e);
           return null;
         }
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         request = new HttpEntity(requestBodyString, headers);
         requestUrl = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true";
         break;
@@ -122,20 +123,22 @@ public class TwitterClient {
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         request = new HttpEntity(body, headers);
         requestUrl = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true"
-            + "&command=APPEND&media_id=" + params.get("media_id") + "&segment_index=" + params.get("segment_index");
+            + "&command=APPEND&media_id=" + params.get("media_id") + "&segment_index=" + params
+            .get("segment_index");
         break;
 
       case FINALIZE:
 
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        request = new HttpEntity("command=FINALIZE&media_id=" + params.get("media_id"), headers);
+        requestBodyString = "command=FINALIZE&media_id=" + params.get("media_id");
+        request = new HttpEntity(requestBodyString, headers);
         requestUrl = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true";
         break;
 
       case STATUS:
 
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        requestUrl = "https://upload.twitter.com/1.1/media/upload.json?command=STATUS&media_id=" + params.get("media_id");
+        requestUrl =
+            "https://upload.twitter.com/1.1/media/upload.json?command=STATUS&media_id=" + params
+                .get("media_id");
         request = new HttpEntity(headers);
         httpMethod = HttpMethod.GET;
         break;
@@ -147,11 +150,49 @@ public class TwitterClient {
     return restTemplate.exchange(requestUrl, httpMethod, request, String.class);
   }
 
+  public void makeUpdateStatusRequest(final String status, final String replyToId,
+      final String mediaIds) {
+    final int timestamp = (int) (new Date().getTime() / 1000);
+    final String nonce = RandomStringUtils.randomAlphanumeric(42);
+
+    String requestBody = "status" + "=" + encode(status) + "&in_reply_to_status_id=" + replyToId;
+
+    final Map<String, String> params = new HashMap<>();
+    params.put("include_entities", "true");
+    params.put("status", status);
+    params.put("in_reply_to_status_id", replyToId);
+
+    if (mediaIds != null) {
+      requestBody = requestBody + "&media_ids=" + mediaIds;
+      params.put("media_ids", mediaIds);
+    }
+
+    final String signature = generateSignature(HttpMethod.POST,
+        "https://api.twitter.com/1.1/statuses/update.json", nonce, timestamp, params);
+
+    final String authHeaderText = "OAuth oauth_consumer_key=\"" + consumerKey + "\", " +
+        "oauth_nonce=\"" + nonce + "\", " +
+        "oauth_signature=\"" + encode(signature) + "\", " +
+        "oauth_signature_method=\"HMAC-SHA1\", " +
+        "oauth_timestamp=\"" + timestamp + "\", " +
+        "oauth_token=\"" + accessKey + "\", " +
+        "oauth_version=\"1.0\"";
+
+    final HttpHeaders httpHeaders = new HttpHeaders();
+    httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    httpHeaders.add("Authorization", authHeaderText);
+
+    HttpEntity request = new HttpEntity(requestBody, httpHeaders);
+    restTemplate
+        .postForObject("https://api.twitter.com/1.1/statuses/update.json?include_entities=true",
+            request, String.class);
+  }
+
   private String generateSignature(final HttpMethod httpMethod, final String baseUrl,
       final String nonce, final int timestamp, final Map<String, String> additionalParams) {
 
     final Map<String, String> sortedParamMap = new TreeMap<>();
-    sortedParamMap.put(encode("oauth_consumerKey"), encode(consumerKey));
+    sortedParamMap.put(encode("oauth_consumer_key"), encode(consumerKey));
     sortedParamMap.put(encode("oauth_nonce"), encode(nonce));
     sortedParamMap.put(encode("oauth_signature_method"), encode("HMAC-SHA1"));
     sortedParamMap.put(encode("oauth_timestamp"), encode(Integer.toString(timestamp)));

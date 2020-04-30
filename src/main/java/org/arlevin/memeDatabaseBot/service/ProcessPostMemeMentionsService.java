@@ -12,7 +12,6 @@ import org.arlevin.memeDatabaseBot.repositories.UserMemesRepository;
 import org.arlevin.memeDatabaseBot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -46,7 +45,8 @@ public class ProcessPostMemeMentionsService {
       log.info(
           "Received a post meme request mention with tweetId {} from userId {}, with description {}",
           replyToId, authorId, description);
-      log.info("{} media files found for meme from userId {} with desciption {}", memeData.get().size(),
+      log.info("{} media files found for meme from userId {} with desciption {}",
+          memeData.get().size(),
           authorId, description);
 
       final List<String> mediaIds = new ArrayList<>();
@@ -58,13 +58,15 @@ public class ProcessPostMemeMentionsService {
         }
 
         final String fileName =
-            pathPrefix + GetFilenameFromSequenceNumUtil.getFileName(media.getSequenceNumber(), fileSuffix);
+            pathPrefix + GetFilenameFromSequenceNumUtil
+                .getFileName(media.getSequenceNumber(), fileSuffix);
 
         log.info("Uploading media file from {} to twitter", fileName);
         final String mediaId = twitterMediaUploadService.uploadMedia(fileName, media.getIsGif());
 
-        if(mediaId == null) {
-          log.error("Was unable to upload media file to twitter, aborting attempt to post meme response");
+        if (mediaId == null) {
+          log.error(
+              "Was unable to upload media file to twitter, aborting attempt to post meme response");
           return;
         }
 
@@ -77,13 +79,15 @@ public class ProcessPostMemeMentionsService {
             "Succesfully uploaded {} media file(s), posting response tweet with media in response to tweetId {} from userId {}",
             mediaIds.size(), replyToId, authorId);
 
+        final String status = "@" + authorScreenName;
+
         final Map<String, String> params = new HashMap<>();
-        params.put("status", "@" + authorScreenName);
+        params.put("status", status);
         params.put("in_reply_to_status_id", replyToId);
         params.put("include_entities", "true");
         params.put("media_ids", String.join(",", mediaIds));
 
-        twitterClient.makeRequest(HttpMethod.POST, "https://api.twitter.com/1.1/statuses/update.json", params);
+        twitterClient.makeUpdateStatusRequest(status, replyToId, String.join(",", mediaIds));
 
         log.info(
             "Successfully posted meme in response to tweetId {} from userId {} with description {}",
@@ -94,13 +98,15 @@ public class ProcessPostMemeMentionsService {
           "Received a post meme request mention for unlearned meme with tweetId {} from userId {} with description {}",
           replyToId, authorId, description);
 
+      final String status =
+          "@" + authorScreenName + " Sorry, I haven't learned that meme from you yet";
+
       final Map<String, String> params = new HashMap<>();
-      params.put("status",
-          "@" + authorScreenName + " Sorry, I haven't learned that meme from you yet");
+      params.put("status", status);
       params.put("in_reply_to_status_id", replyToId);
       params.put("include_entities", "true");
 
-      twitterClient.makeRequest(HttpMethod.POST, "https://api.twitter.com/1.1/statuses/update.json", params);
+      twitterClient.makeUpdateStatusRequest(status, replyToId, null);
 
       log.info(
           "Successfully posted failure response to tweetId {} from userId {} with description {}",
