@@ -1,4 +1,4 @@
-package org.arlevin.memeDatabaseBot.domain;
+package org.arlevin.memeDatabaseBot.entity;
 
 import java.time.Instant;
 import javax.persistence.Column;
@@ -7,15 +7,13 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
-@Data
 @Builder
 @Entity
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "processed_mentions")
 public class ProcessedMentionsEntity {
 

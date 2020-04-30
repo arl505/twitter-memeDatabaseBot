@@ -21,8 +21,5 @@ dependencies {
 	compile 'commons-codec:commons-codec:+'
 	compile 'org.json:json:+'
 	compileOnly 'org.projectlombok:lombok:1.18.8'
-
 	annotationProcessor 'org.projectlombok:lombok:1.18.8'
-
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

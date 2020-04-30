@@ -1,21 +1,8 @@
-package org.arlevin.memeDatabaseBot.utilities;
+package org.arlevin.memeDatabaseBot.util;
 
-import org.arlevin.memeDatabaseBot.domain.SequenceNumberEntity;
-import org.arlevin.memeDatabaseBot.repositories.SequenceNumberRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+public class GetFilenameFromSequenceNumUtil {
 
-@Component
-public class MediaFileUtility {
-
-  @Value("${pathPrefix}")
-  private String pathPrefix;
-
-  private final SequenceNumberRepository sequenceNumberRepository;
-
-  public MediaFileUtility(SequenceNumberRepository sequenceNumberRepository) {
-    this.sequenceNumberRepository = sequenceNumberRepository;
-  }
+  private GetFilenameFromSequenceNumUtil() {}
 
   // store the image using methodology found here:
   // https://serverfault.com/questions/95444/storing-a-million-images-in-the-filesystem:
@@ -34,24 +21,14 @@ public class MediaFileUtility {
                   123/456/789/12345678901234.jpg
    */
 
-  public String getSequenceNumber() {
-
-    // increment sequence by inserting new record
-    // delete all records less than new sequence number (should only be 1 record)
-    SequenceNumberEntity sequenceNumberEntity = sequenceNumberRepository.save(new SequenceNumberEntity());
-    sequenceNumberRepository.deleteLessThanHighNum(sequenceNumberEntity.getSequenceNumber());
-    return sequenceNumberEntity.getSequenceNumber().toString();
-  }
-
-  public String getFileName(String sequenceNumber, String fileSuffix) {
+  public static String getFileName(String sequenceNumber, String fileSuffix) {
     StringBuilder stringBuilder = new StringBuilder();
-    for(int j = 0; j < 12 - sequenceNumber.length(); j++) {
+    for (int j = 0; j < 12 - sequenceNumber.length(); j++) {
       stringBuilder.append("0");
     }
     sequenceNumber = stringBuilder.toString() + sequenceNumber;
 
-    return pathPrefix
-        + '/'
+    return '/'
         + sequenceNumber.substring(0, 3) + '/'
         + sequenceNumber.substring(3, 6) + '/'
         + sequenceNumber.substring(6, 9) + '/'

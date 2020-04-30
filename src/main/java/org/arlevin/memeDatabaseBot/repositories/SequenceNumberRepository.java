@@ -1,6 +1,6 @@
 package org.arlevin.memeDatabaseBot.repositories;
 
-import org.arlevin.memeDatabaseBot.domain.SequenceNumberEntity;
+import org.arlevin.memeDatabaseBot.entity.SequenceNumberEntity;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
