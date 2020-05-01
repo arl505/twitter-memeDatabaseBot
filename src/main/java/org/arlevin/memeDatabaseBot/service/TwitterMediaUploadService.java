@@ -72,7 +72,7 @@ public class TwitterMediaUploadService {
       mediaCategory = "TweetImage";
     }
 
-    final Map<String, String> params = new HashMap();
+    final Map<String, String> params = new HashMap<>();
     params.put(StringConstants.INCLUDE_ENTITIES, "true");
     params.put(StringConstants.COMMAND, MediaUploadCommand.INIT.toString());
     params.put("total_bytes", fileBytesNum);
@@ -141,7 +141,7 @@ public class TwitterMediaUploadService {
   private void sendAppendRequest(final String mediaId, final Integer segmentIndex,
       final byte[] mediaData) {
 
-    final Map<String, String> params = new HashMap();
+    final Map<String, String> params = new HashMap<>();
     params.put(StringConstants.INCLUDE_ENTITIES, "true");
     params.put(StringConstants.COMMAND, "APPEND");
     params.put(StringConstants.MEDIA_ID, mediaId);

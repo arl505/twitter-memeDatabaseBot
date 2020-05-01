@@ -38,6 +38,7 @@ public class ProcessLearnMemeMentionsService {
   @Value("${credentials.access.key}")
   private String accessToken;
 
+  // todo: test if I can reply to an image with a learn command, I think this below needs to be the full url
   private static final String SHOW_STATUS_API_PATH = "/1.1/statuses/show.json";
 
 
