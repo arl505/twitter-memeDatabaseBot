@@ -8,7 +8,7 @@ public class StringConstants {
   public static final String BITRATE = "bitrate";
   public static final String NONCE_AUTH_HEADER_PART = "oauth_nonce=\"";
   public static final String SIGNATURE_AUTH_HEADER_PART = "oauth_signature=\"";
-  public static final String TIMESTAMP_AUTH_HEADER_PART = "oatuh_timestamp=\"";
+  public static final String TIMESTAMP_AUTH_HEADER_PART = "oauth_timestamp=\"";
   public static final String AUTHORIZATION = "Authorization";
   public static final String UTF8 = "UTF-8";
   public static final String MEDIA_UPLOAD_URL = "https://upload.twitter.com/1.1/media/upload.json?include_entities=true";
