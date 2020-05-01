@@ -8,7 +8,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memedatabasebot.client.TwitterClient;
 import org.arlevin.memedatabasebot.entity.UserMemesEntity;
-import org.arlevin.memedatabasebot.repositories.UserMemesRepository;
+import org.arlevin.memedatabasebot.repository.UserMemesRepository;
 import org.arlevin.memedatabasebot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;

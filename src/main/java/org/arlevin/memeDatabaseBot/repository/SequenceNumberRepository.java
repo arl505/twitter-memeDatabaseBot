@@ -1,4 +1,4 @@
-package org.arlevin.memedatabasebot.repositories;
+package org.arlevin.memedatabasebot.repository;
 
 import org.arlevin.memedatabasebot.entity.SequenceNumberEntity;
 import org.springframework.data.jpa.repository.Modifying;

@@ -4,7 +4,7 @@ import java.util.List;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memedatabasebot.entity.ProcessedMentionsEntity;
-import org.arlevin.memedatabasebot.repositories.ProcessedMentionsRepository;
+import org.arlevin.memedatabasebot.repository.ProcessedMentionsRepository;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 

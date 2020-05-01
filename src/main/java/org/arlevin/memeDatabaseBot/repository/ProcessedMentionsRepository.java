@@ -1,4 +1,4 @@
-package org.arlevin.memedatabasebot.repositories;
+package org.arlevin.memedatabasebot.repository;
 
 import java.util.Optional;
 import org.arlevin.memedatabasebot.entity.ProcessedMentionsEntity;

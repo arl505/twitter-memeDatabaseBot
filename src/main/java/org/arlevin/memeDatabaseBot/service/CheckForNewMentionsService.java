@@ -8,7 +8,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memedatabasebot.client.TwitterClient;
 import org.arlevin.memedatabasebot.entity.ProcessedMentionsEntity;
-import org.arlevin.memedatabasebot.repositories.ProcessedMentionsRepository;
+import org.arlevin.memedatabasebot.repository.ProcessedMentionsRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.HttpMethod;

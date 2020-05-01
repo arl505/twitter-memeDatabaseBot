@@ -15,8 +15,8 @@ import org.arlevin.memedatabasebot.client.TwitterClient;
 import org.arlevin.memedatabasebot.constant.StringConstants;
 import org.arlevin.memedatabasebot.entity.SequenceNumberEntity;
 import org.arlevin.memedatabasebot.entity.UserMemesEntity;
-import org.arlevin.memedatabasebot.repositories.SequenceNumberRepository;
-import org.arlevin.memedatabasebot.repositories.UserMemesRepository;
+import org.arlevin.memedatabasebot.repository.SequenceNumberRepository;
+import org.arlevin.memedatabasebot.repository.UserMemesRepository;
 import org.arlevin.memedatabasebot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -201,7 +201,7 @@ public class ProcessLearnMemeMentionsService {
     final Map<String, Boolean> urls = new HashMap<>();
     for (int i = 0; i < medias.length(); i++) {
       final JSONObject media = medias.getJSONObject(i);
-      String twitterMediaUrl = "";
+      String twitterMediaUrl;
       boolean isGif = false;
       if (media.getString("type").equals("video")) {
         twitterMediaUrl = getOptimalVideoUrl(
