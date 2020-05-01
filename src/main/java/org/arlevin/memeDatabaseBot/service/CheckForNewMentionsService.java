@@ -1,5 +1,7 @@
 package org.arlevin.memedatabasebot.service;
 
+import static org.springframework.http.HttpMethod.GET;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,7 +13,6 @@ import org.arlevin.memedatabasebot.entity.ProcessedMentionsEntity;
 import org.arlevin.memedatabasebot.repository.ProcessedMentionsRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,7 @@ public class CheckForNewMentionsService {
 
     log.info("Calling twitter to get mentions");
     final ResponseEntity<String> responseEntity = twitterClient
-        .makeRequest(HttpMethod.GET, GET_MENTIONS_BASE_URL, signatureParams);
+        .makeRequest(GET, GET_MENTIONS_BASE_URL, signatureParams);
     final JSONArray response = new JSONArray(responseEntity.getBody());
 
     final List<JSONObject> newMentions = new ArrayList<>();
@@ -66,11 +67,13 @@ public class CheckForNewMentionsService {
       }
       newMentions.add(tweet);
     }
-    log.info(
-        "Found no already processed mention, calling sort mentions service with all {} tweets",
-        newMentions.size());
-    sortMentionsService.process(newMentions);
-    log.info("Successfully finished processing new mentions");
+    if (!newMentions.isEmpty()) {
+      log.info(
+          "Found no already processed mention, calling sort mentions service with all {} tweets",
+          newMentions.size());
+      sortMentionsService.process(newMentions);
+      log.info("Successfully finished processing new mentions");
+    }
   }
 
   private boolean isTweetAlreadyProcessed(final String id) {
