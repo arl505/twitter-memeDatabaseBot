@@ -38,10 +38,6 @@ public class ProcessLearnMemeMentionsService {
   @Value("${credentials.access.key}")
   private String accessToken;
 
-  // todo: test if I can reply to an image with a learn command, I think this below needs to be the full url
-  private static final String SHOW_STATUS_API_PATH = "/1.1/statuses/show.json";
-
-
   private final UserMemesRepository userMemesRepository;
   private final SequenceNumberRepository sequenceNumberRepository;
   private final TwitterClient twitterClient;
@@ -136,7 +132,7 @@ public class ProcessLearnMemeMentionsService {
     }
   }
 
-  public String getSequenceNumber() {
+  private String getSequenceNumber() {
 
     // increment sequence by inserting new record
     // delete all records less than new sequence number (should only be 1 record)
@@ -193,7 +189,8 @@ public class ProcessLearnMemeMentionsService {
     signatureParams.put("id", tweetId);
 
     ResponseEntity<String> responseEntity = twitterClient
-        .makeRequest(HttpMethod.GET, SHOW_STATUS_API_PATH, signatureParams);
+        .makeRequest(HttpMethod.GET, "https://api.twitter.com/1.1/statuses/show.json",
+            signatureParams);
     return new JSONObject(responseEntity.getBody());
   }
 
