@@ -24,7 +24,9 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 
+@SuppressWarnings({"unchecked"})
 public class CheckForNewMentionsServiceTest {
 
   private final ProcessedMentionsRepository processedMentionsRepository;
@@ -42,6 +44,8 @@ public class CheckForNewMentionsServiceTest {
         sortMentionsService, twitterClient);
     expectedParams = new HashMap<>();
     expectedParams.put("tweet_mode", "extended");
+
+    ReflectionTestUtils.setField(checkForNewMentionsService, "connectToTwitter", true);
   }
 
   @Test
