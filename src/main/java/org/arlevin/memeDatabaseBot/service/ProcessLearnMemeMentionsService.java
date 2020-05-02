@@ -1,5 +1,11 @@
 package org.arlevin.memedatabasebot.service;
 
+import static org.arlevin.memedatabasebot.constant.StringConstants.BITRATE;
+import static org.arlevin.memedatabasebot.constant.StringConstants.EXTENDED_ENTITIES;
+import static org.arlevin.memedatabasebot.constant.StringConstants.ID_STR;
+import static org.arlevin.memedatabasebot.constant.StringConstants.MEDIA;
+import static org.springframework.http.HttpMethod.GET;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -12,7 +18,6 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memedatabasebot.client.TwitterClient;
-import org.arlevin.memedatabasebot.constant.StringConstants;
 import org.arlevin.memedatabasebot.entity.SequenceNumberEntity;
 import org.arlevin.memedatabasebot.entity.UserMemesEntity;
 import org.arlevin.memedatabasebot.repository.SequenceNumberRepository;
@@ -21,7 +26,6 @@ import org.arlevin.memedatabasebot.util.GetFilenameFromSequenceNumUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -31,12 +35,6 @@ public class ProcessLearnMemeMentionsService {
 
   @Value("${pathPrefix}")
   private String pathPrefix;
-
-  @Value("${credentials.consumer.key}")
-  private String consumerApiKey;
-
-  @Value("${credentials.access.key}")
-  private String accessToken;
 
   private final UserMemesRepository userMemesRepository;
   private final SequenceNumberRepository sequenceNumberRepository;
@@ -54,8 +52,8 @@ public class ProcessLearnMemeMentionsService {
     final Map<String, Boolean> medias = getMediaMapFromTweet(tweet);
 
     if (!medias.isEmpty()) {
-      final String userId = tweet.getJSONObject("user").getString(StringConstants.ID_STR);
-      final String tweetId = tweet.getString(StringConstants.ID_STR);
+      final String userId = tweet.getJSONObject("user").getString(ID_STR);
+      final String tweetId = tweet.getString(ID_STR);
 
       if (!userMemesRepository.findAllByUserIdAndDescription(userId, description).isPresent()) {
         log.info("Received a learn request with tweetId {} from userId {}, with description {}",
@@ -94,7 +92,7 @@ public class ProcessLearnMemeMentionsService {
             tweetId);
 
         final String status = '@' + tweet.getJSONObject("user").getString("screen_name") + "✅️";
-        final String inReplyToStatusId = tweet.getString(StringConstants.ID_STR);
+        final String inReplyToStatusId = tweet.getString(ID_STR);
 
         final Map<String, String> params = new HashMap<>();
         params.put("status", status);
@@ -112,7 +110,7 @@ public class ProcessLearnMemeMentionsService {
 
         final String status = "@" + tweet.getJSONObject("user").getString("screen_name")
             + " You already have a meme saved with that description";
-        final String inReplyToStatusId = tweet.getString(StringConstants.ID_STR);
+        final String inReplyToStatusId = tweet.getString(ID_STR);
 
         final Map<String, String> params = new HashMap<>();
         params.put("status", status);
@@ -147,19 +145,19 @@ public class ProcessLearnMemeMentionsService {
     JSONArray medias = new JSONArray();
 
     // if media is directly attached to tweet
-    if (tweet.has(StringConstants.EXTENDED_ENTITIES)) {
-      medias = tweet.getJSONObject(StringConstants.EXTENDED_ENTITIES)
-          .getJSONArray(StringConstants.MEDIA);
+    if (tweet.has(EXTENDED_ENTITIES)) {
+      medias = tweet.getJSONObject(EXTENDED_ENTITIES)
+          .getJSONArray(MEDIA);
     }
 
     // if media is in quoted tweet
     else if (tweet.has("quoted_status")) {
-      medias = tweet.getJSONObject("quoted_status").getJSONObject(StringConstants.EXTENDED_ENTITIES)
-          .getJSONArray(StringConstants.MEDIA);
+      medias = tweet.getJSONObject("quoted_status").getJSONObject(EXTENDED_ENTITIES)
+          .getJSONArray(MEDIA);
     }
 
     // if inReplyTo tweet exists, try and get media from it
-    else if (!tweet.isNull("in_reply_to_status_id_str")) {
+    else if (tweet.has("in_reply_to_status_id_str")) {
       medias = getMediasFromInResponseToTweet(tweet);
     }
 
@@ -176,9 +174,9 @@ public class ProcessLearnMemeMentionsService {
 
     final JSONObject inReplyToTweet = getInReplyToTweet(inReplyToTweetId);
 
-    if (inReplyToTweet.has(StringConstants.EXTENDED_ENTITIES)) {
-      return inReplyToTweet.getJSONObject(StringConstants.EXTENDED_ENTITIES)
-          .getJSONArray(StringConstants.MEDIA);
+    if (inReplyToTweet.has(EXTENDED_ENTITIES)) {
+      return inReplyToTweet.getJSONObject(EXTENDED_ENTITIES)
+          .getJSONArray(MEDIA);
     }
     return new JSONArray();
   }
@@ -189,7 +187,7 @@ public class ProcessLearnMemeMentionsService {
     signatureParams.put("id", tweetId);
 
     ResponseEntity<String> responseEntity = twitterClient
-        .makeRequest(HttpMethod.GET, "https://api.twitter.com/1.1/statuses/show.json",
+        .makeRequest(GET, "https://api.twitter.com/1.1/statuses/show.json",
             signatureParams);
     return new JSONObject(responseEntity.getBody());
   }
@@ -220,18 +218,14 @@ public class ProcessLearnMemeMentionsService {
     int bitrate = 0;
     for (int j = 0; j < variantsArray.length(); j++) {
       if (((variantsArray.getJSONObject(j).getString("content_type").equals("video/mp4")) && (
-          variantsArray.getJSONObject(j).getInt(StringConstants.BITRATE) > bitrate))
+          variantsArray.getJSONObject(j).getInt(BITRATE) > bitrate))
           || ((j == variantsArray.length() - 1) && (bitrate == 0))) {
-        bitrate = (variantsArray.getJSONObject(j).has(StringConstants.BITRATE))
-            ? variantsArray.getJSONObject(j).getInt(StringConstants.BITRATE)
+        bitrate = (variantsArray.getJSONObject(j).has(BITRATE))
+            ? variantsArray.getJSONObject(j).getInt(BITRATE)
             : 0;
         twitterMediaUrl = variantsArray.getJSONObject(j).getString("url");
       }
     }
-    if (twitterMediaUrl.equals("")) {
-      twitterMediaUrl = variantsArray.getJSONObject(0).getString("url");
-    }
-
     return twitterMediaUrl;
   }
 
