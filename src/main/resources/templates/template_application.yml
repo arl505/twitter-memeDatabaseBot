@@ -5,3 +5,5 @@
 #  access:
 #    key: PUT_VALUE_HERE
 #    secret: PUT_VALUE_HERE
+#
+#defaultCheckAfterSecs: 5

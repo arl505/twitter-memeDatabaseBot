@@ -1,6 +1,15 @@
 package org.arlevin.memedatabasebot.service;
 
 import static java.lang.Math.ceil;
+import static org.arlevin.memedatabasebot.constant.StringConstants.COMMAND;
+import static org.arlevin.memedatabasebot.constant.StringConstants.INCLUDE_ENTITIES;
+import static org.arlevin.memedatabasebot.constant.StringConstants.MEDIA_ID;
+import static org.arlevin.memedatabasebot.constant.StringConstants.PROCESSING_INFO;
+import static org.arlevin.memedatabasebot.constant.StringConstants.UPLOADING_LOG;
+import static org.arlevin.memedatabasebot.enums.MediaUploadCommand.APPEND;
+import static org.arlevin.memedatabasebot.enums.MediaUploadCommand.FINALIZE;
+import static org.arlevin.memedatabasebot.enums.MediaUploadCommand.INIT;
+import static org.arlevin.memedatabasebot.enums.MediaUploadCommand.STATUS;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,24 +22,18 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memedatabasebot.client.TwitterClient;
-import org.arlevin.memedatabasebot.constant.StringConstants;
-import org.arlevin.memedatabasebot.enums.MediaUploadCommand;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 
-
 @Slf4j
 @Service
 public class TwitterMediaUploadService {
 
-  @Value("${credentials.consumer.key}")
-  private String consumerApiKey;
-
-  @Value("${credentials.access.key}")
-  private String accessToken;
+  @Value("${defaultCheckAfterSecs}")
+  private Integer defaultCheckAfterSecs;
 
   private final TwitterClient twitterClient;
 
@@ -64,26 +67,24 @@ public class TwitterMediaUploadService {
 
     final String type = mimeType.split("/")[0];
     String mediaCategory;
-    if (isGif) {
-      mediaCategory = "TweetVideo";
-    } else if (type.equals("video")) {
+    if (isGif || type.equals("video")) {
       mediaCategory = "TweetVideo";
     } else {
       mediaCategory = "TweetImage";
     }
 
     final Map<String, String> params = new HashMap<>();
-    params.put(StringConstants.INCLUDE_ENTITIES, "true");
-    params.put(StringConstants.COMMAND, MediaUploadCommand.INIT.toString());
+    params.put(INCLUDE_ENTITIES, "true");
+    params.put(COMMAND, INIT.toString());
     params.put("total_bytes", fileBytesNum);
     params.put("media_type", mimeType);
     params.put("media_category", mediaCategory);
 
     log.info("Sending twitter upload INIT request...");
     final ResponseEntity<String> responseEntity = twitterClient
-        .makeMediaUploadRequest(MediaUploadCommand.INIT, params, null);
+        .makeMediaUploadRequest(INIT, params, null);
 
-    return responseEntity == null
+    return responseEntity == null || responseEntity.getBody() == null
         ? null
         : new JSONObject(responseEntity.getBody()).getString("media_id_string");
   }
@@ -94,7 +95,7 @@ public class TwitterMediaUploadService {
     try {
       final byte[] fileBytes = Files.readAllBytes(file.toPath());
 
-      Double fileSizeMB = fileBytes.length / 1000000D;
+      double fileSizeMB = fileBytes.length / 1000000D;
       fileSizeMB = ceil(fileSizeMB);
       int from;
       int to;
@@ -104,68 +105,71 @@ public class TwitterMediaUploadService {
       // upload the file 1/9th at a time: nine requests each with a 1/9th chunk of the file
       // if the file is < 1 MB, upload in 2 chunks each 1/2 of the toal file
       int uploadedTotal = 0;
-      for (int i = 0; i < fileSizeMB.intValue(); i++) {
+      for (int i = 0; i < (int) fileSizeMB; i++) {
         if (fileSizeMB == 1L) {
           from = 0;
           to = fileBytes.length / 2;
           byte[] bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
-          log.info(StringConstants.UPLOADING_LOG, from, to);
+          log.info(UPLOADING_LOG, from, to);
           sendAppendRequest(mediaId, 0, Base64.getEncoder().encode(bytesChunk));
 
           from = fileBytes.length / 2;
           to = fileBytes.length;
-          log.info(StringConstants.UPLOADING_LOG, from, to);
+          log.info(UPLOADING_LOG, from, to);
           bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
           sendAppendRequest(mediaId, 1, Base64.getEncoder().encode(bytesChunk));
           return;
         }
-        from = i * (fileBytes.length / fileSizeMB.intValue());
-        if (i == fileSizeMB.intValue() - 1) {
+        from = i * (fileBytes.length / ((int )fileSizeMB));
+        if (i == (int) fileSizeMB - 1) {
           to = fileBytes.length;
         } else {
-          to = i * (fileBytes.length / fileSizeMB.intValue()) + (fileBytes.length / fileSizeMB
-              .intValue());
+          to = i * (fileBytes.length / ((int) fileSizeMB)) + (fileBytes.length / ((int) fileSizeMB));
         }
         byte[] bytesChunk = Arrays.copyOfRange(fileBytes, from, to);
         uploadedTotal = uploadedTotal + bytesChunk.length;
-        log.info(StringConstants.UPLOADING_LOG, from, to);
+        log.info(UPLOADING_LOG, from, to);
         sendAppendRequest(mediaId, i, Base64.getEncoder().encode(bytesChunk));
         log.info("Uploaded {} bytes total", uploadedTotal);
       }
     } catch (final IOException e) {
       log.error("Could not read file bytes: {}", e.toString());
     }
-
   }
 
   private void sendAppendRequest(final String mediaId, final Integer segmentIndex,
       final byte[] mediaData) {
 
     final Map<String, String> params = new HashMap<>();
-    params.put(StringConstants.INCLUDE_ENTITIES, "true");
-    params.put(StringConstants.COMMAND, "APPEND");
-    params.put(StringConstants.MEDIA_ID, mediaId);
+    params.put(INCLUDE_ENTITIES, "true");
+    params.put(COMMAND, "APPEND");
+    params.put(MEDIA_ID, mediaId);
     params.put("segment_index", segmentIndex.toString());
 
     log.info("Sending twitter upload APPEND request...");
-    twitterClient.makeMediaUploadRequest(MediaUploadCommand.APPEND, params, mediaData);
+    twitterClient.makeMediaUploadRequest(APPEND, params, mediaData);
   }
 
   private boolean finalizeUpload(final String mediaId) {
 
     final Map<String, String> params = new HashMap<>();
-    params.put(StringConstants.INCLUDE_ENTITIES, "true");
-    params.put(StringConstants.COMMAND, "FINALIZE");
-    params.put(StringConstants.MEDIA_ID, mediaId);
+    params.put(INCLUDE_ENTITIES, "true");
+    params.put(COMMAND, "FINALIZE");
+    params.put(MEDIA_ID, mediaId);
 
     log.info("Sending twitter upload FINALIZE request...");
     final ResponseEntity<String> responseEntity = twitterClient
-        .makeMediaUploadRequest(MediaUploadCommand.FINALIZE, params, null);
+        .makeMediaUploadRequest(FINALIZE, params, null);
+
+    if(responseEntity == null || responseEntity.getBody() == null) {
+      return false;
+    }
+
     final JSONObject response = new JSONObject(responseEntity.getBody());
 
     int checkAfterSecs = 0;
-    if (response.has(StringConstants.PROCESSING_INFO)) {
-      checkAfterSecs = response.getJSONObject(StringConstants.PROCESSING_INFO).getInt("check_after_secs");
+    if (response.has(PROCESSING_INFO)) {
+      checkAfterSecs = response.getJSONObject(PROCESSING_INFO).getInt("check_after_secs");
       log.info("Processing info found, will wait {} seconds to check status", checkAfterSecs);
     }
     return checkStatus(mediaId, checkAfterSecs, 3);
@@ -173,7 +177,7 @@ public class TwitterMediaUploadService {
 
   private boolean checkStatus(final String mediaId, final Integer checkAfterSecs,
       final Integer retryTimes) {
-    boolean isCompleted = false;
+    boolean isCompleted;
     try {
       log.info("Sleeping for {} seconds", checkAfterSecs);
       TimeUnit.SECONDS.sleep(checkAfterSecs);
@@ -182,24 +186,31 @@ public class TwitterMediaUploadService {
       log.error("Sleeping for {} seconds threw an exception: {}", checkAfterSecs, e.toString());
     }
     final Map<String, String> params = new HashMap<>();
-    params.put(StringConstants.COMMAND, "STATUS");
-    params.put(StringConstants.MEDIA_ID, mediaId);
+    params.put(COMMAND, "STATUS");
+    params.put(MEDIA_ID, mediaId);
 
     log.info("Sending twitter upload STATUS request...");
     try {
       final ResponseEntity<String> responseEntity = twitterClient
-          .makeMediaUploadRequest(MediaUploadCommand.STATUS, params, null);
+          .makeMediaUploadRequest(STATUS, params, null);
+
+      if(responseEntity == null || responseEntity.getBody() == null) {
+        return false;
+      }
+
       final JSONObject response = new JSONObject(responseEntity.getBody());
 
-      if (response.getJSONObject(StringConstants.PROCESSING_INFO).getString("state").equals("succeeded")) {
-        log.info("Upload successfully completed, mediaId can now be used to in status update");
+      if (response.getJSONObject(PROCESSING_INFO).getString("state").equals("succeeded")) {
+        log.info("Upload successfully completed, mediaId can now be used in status update");
         isCompleted = true;
       } else if (retryTimes == 0) {
-        log.info("Retried checking the status the maxinum of times, unable to upload media");
         isCompleted = false;
+        log.info("Retried checking the status the maximum of times, unable to upload media");
       } else {
-        log.info("Upload not completed, will check status retry {} more times with 5 seconds sleep");
-        return checkStatus(mediaId, 5, retryTimes - 1);
+        log.info("Upload not completed, will check status retry {} more times with {} seconds sleep",
+            retryTimes, defaultCheckAfterSecs);
+
+        return checkStatus(mediaId, defaultCheckAfterSecs, retryTimes - 1);
       }
     } catch (final HttpClientErrorException e) {
       log.info("Could not check status, assuming successful upload: {}", e.toString());

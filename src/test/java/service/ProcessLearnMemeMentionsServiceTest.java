@@ -1,4 +1,4 @@
-package dev;
+package service;
 
 import static org.arlevin.memedatabasebot.constant.StringConstants.BITRATE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
