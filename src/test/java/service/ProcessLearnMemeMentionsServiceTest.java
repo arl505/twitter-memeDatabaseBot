@@ -252,7 +252,6 @@ public class ProcessLearnMemeMentionsServiceTest {
     verify(twitterClient, never()).makeUpdateStatusRequest(any(), any(), any());
   }
 
-
   @Test
   public void process_withNewLearnRequest_withExtendedEntitiesWithEmptyMedia_doNotSaveToDbDoNotUpdateStatus() {
     final JSONObject tweet = new JSONObject()
@@ -299,6 +298,8 @@ public class ProcessLearnMemeMentionsServiceTest {
     processLearnMemeMentionsService.process(tweet, "test");
 
     verify(userMemesRepository, never()).save(any());
-    verify(twitterClient).makeUpdateStatusRequest("@username You already have a meme saved with that description", "tweet1", null);
+    verify(twitterClient)
+        .makeUpdateStatusRequest("@username You already have a meme saved with that description",
+            "tweet1", null);
   }
 }

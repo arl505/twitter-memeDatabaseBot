@@ -1,9 +1,7 @@
 package org.arlevin.memedatabasebot.service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.arlevin.memedatabasebot.client.TwitterClient;
@@ -81,12 +79,6 @@ public class ProcessPostMemeMentionsService {
 
         final String status = "@" + authorScreenName;
 
-        final Map<String, String> params = new HashMap<>();
-        params.put("status", status);
-        params.put("in_reply_to_status_id", replyToId);
-        params.put("include_entities", "true");
-        params.put("media_ids", String.join(",", mediaIds));
-
         twitterClient.makeUpdateStatusRequest(status, replyToId, String.join(",", mediaIds));
 
         log.info(
@@ -100,11 +92,6 @@ public class ProcessPostMemeMentionsService {
 
       final String status =
           "@" + authorScreenName + " Sorry, I haven't learned that meme from you yet";
-
-      final Map<String, String> params = new HashMap<>();
-      params.put("status", status);
-      params.put("in_reply_to_status_id", replyToId);
-      params.put("include_entities", "true");
 
       twitterClient.makeUpdateStatusRequest(status, replyToId, null);
 
