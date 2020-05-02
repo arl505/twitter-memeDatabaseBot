@@ -18,17 +18,17 @@ test {
 }
 
 dependencies {
-	compile 'org.springframework.boot:spring-boot-starter-data-jpa'
-	compile 'org.springframework.boot:spring-boot-starter-web'
-	compile 'mysql:mysql-connector-java'
-	compile 'org.apache.commons:commons-lang3'
-	compile 'commons-codec:commons-codec'
-	compile 'org.json:json:+'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'mysql:mysql-connector-java'
+	implementation 'org.apache.commons:commons-lang3'
+	implementation 'commons-codec:commons-codec'
+	implementation 'org.json:json:+'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
-  testCompile 'org.springframework:spring-test'
-  testCompile 'org.junit.jupiter:junit-jupiter-api'
+  testImplementation 'org.springframework:spring-test'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api'
   testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
-  testCompile 'org.mockito:mockito-core'
+  testImplementation 'org.mockito:mockito-core'
 }
