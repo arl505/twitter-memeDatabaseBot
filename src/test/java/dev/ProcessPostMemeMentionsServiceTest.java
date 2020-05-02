@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +18,8 @@ import org.arlevin.memedatabasebot.service.ProcessPostMemeMentionsService;
 import org.arlevin.memedatabasebot.service.TwitterMediaUploadService;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class ProcessPostMemeMentionsServiceTest {
 
@@ -31,6 +34,11 @@ public class ProcessPostMemeMentionsServiceTest {
     this.twitterClient = mock(TwitterClient.class);
     this.processPostMemeMentionsService = new ProcessPostMemeMentionsService(userMemesRepository,
         twitterMediaUploadService, twitterClient);
+
+    String path = "src/test/resources/writeToFolder";
+    File file = new File(path);
+    String absolutePath = file.getAbsolutePath();
+    ReflectionTestUtils.setField(processPostMemeMentionsService, "pathPrefix", absolutePath);
   }
 
   @Test
@@ -63,7 +71,7 @@ public class ProcessPostMemeMentionsServiceTest {
         .of(Collections.singletonList(UserMemesEntity.builder()
             .description("test")
             .isGif(false)
-            .twitterMediaUrl("https://www.test.com/img.jpeg?metadata=true")
+            .twitterMediaUrl("https://arlevin.org/static/media/react.97893603.jpg?hello=true")
             .sequenceNumber("1")
             .userId("1")
             .build()));
@@ -78,6 +86,9 @@ public class ProcessPostMemeMentionsServiceTest {
 
     verify(twitterClient)
         .makeUpdateStatusRequest("@username", "tweet1", "1");
+
+    final ArgumentCaptor<String> stringArgumentCaptor = ArgumentCaptor.forClass(String.class);
+    verify(twitterMediaUploadService).uploadMedia(stringArgumentCaptor.capture(), eq(false));
   }
 
   @Test
@@ -92,7 +103,7 @@ public class ProcessPostMemeMentionsServiceTest {
         .of(Collections.singletonList(UserMemesEntity.builder()
             .description("test")
             .isGif(false)
-            .twitterMediaUrl("https://www.test.com/img.jpeg?metadata=true")
+            .twitterMediaUrl("https://arlevin.org/static/media/react.97893603.jpg")
             .sequenceNumber("1")
             .userId("1")
             .build()));
