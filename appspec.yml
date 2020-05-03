@@ -1,0 +1,18 @@
+version: 0.0
+os: linux
+files:
+  - source: memedatabasebot-0.0.1-SNAPSHOT.jar
+    destination: /writeToFolder/memedatabase/
+hooks:
+  ApplicationStop:
+    - location: stop_server.sh
+      timeout: 300
+      runas: root
+  BeforeInstall:
+    - location: create_or_update_service.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: start_server.sh
+      timeout: 300
+      runas: root
