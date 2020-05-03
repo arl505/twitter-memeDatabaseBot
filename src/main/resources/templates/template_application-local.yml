@@ -1,0 +1,6 @@
+#spring:
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/memebot?user=root&useSSL=false&serverTimezone=UTC
+#    password: INSERT_PASSWORD_HERE
+#
+#pathPrefix: /Users/Alec/Desktop/writeToFolder

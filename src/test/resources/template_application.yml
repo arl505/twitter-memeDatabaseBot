@@ -1,0 +1,19 @@
+#credentials:
+#  consumer:
+#    key: PUT_VALUE_HERE
+#    secret: PUT_VALUE_HERE
+#  access:
+#    key: PUT_VALUE_HERE
+#    secret: PUT_VALUE_HERE
+#
+#defaultCheckAfterSecs: 5
+#
+#spring:
+#  datasource:
+#    url: jdbc:mysql://INSERT_ENDPOINT_HERE:3306/memebot
+#    username: INSERT_USERNAME_HERE
+#    password: INSERT_PASSWORD_HERE
+#
+#pathPrefix: /
+#
+#connectToTwitter: false

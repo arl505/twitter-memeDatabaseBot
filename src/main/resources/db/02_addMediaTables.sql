@@ -3,6 +3,7 @@ create table user_memes (
   description varchar(500),
   sequence_number bigint unsigned,
   twitter_media_url varchar(100),
+  is_gif boolean,
   primary key (user_id, description, sequence_number)
 );
 

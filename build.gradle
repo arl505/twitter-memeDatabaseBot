@@ -13,16 +13,22 @@ repositories {
 	mavenCentral()
 }
 
+test {
+    useJUnitPlatform()
+}
+
 dependencies {
-	compile 'org.springframework.boot:spring-boot-starter-data-jpa'
-	compile 'org.springframework.boot:spring-boot-starter-web'
-	compile 'mysql:mysql-connector-java:8.0.11'
-	compile 'org.apache.commons:commons-lang3:+'
-	compile 'commons-codec:commons-codec:+'
-	compile 'org.json:json:+'
-	compileOnly 'org.projectlombok:lombok:1.18.8'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'mysql:mysql-connector-java'
+	implementation 'org.apache.commons:commons-lang3'
+	implementation 'commons-codec:commons-codec'
+	implementation 'org.json:json:+'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
 
-	annotationProcessor 'org.projectlombok:lombok:1.18.8'
-
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+  testImplementation 'org.springframework:spring-test'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api'
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+  testImplementation 'org.mockito:mockito-core'
 }
