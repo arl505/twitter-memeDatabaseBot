@@ -1,7 +1,12 @@
+version: 0.1
+
 phases:
   build:
     commands:
-      - gradle clean build
+      - gradle build
 artifacts:
   files:
     - build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar
+    - appspec.yml
+    - scripts/*
+  discard-paths: yes
