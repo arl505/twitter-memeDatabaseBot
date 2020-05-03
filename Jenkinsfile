@@ -9,12 +9,15 @@ pipeline {
         sh('printenv')
       }
     }
-    if(env.BRANCH_NAME == 'master') {
-      stage('Deploy') {
-        steps {
-          sh('ln -s -f ./build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar /etc/init.d/memebot')
-          sh('service memebot start')
+    stage('Deploy') {
+      when {
+        expression {
+           env.BRANCH_NAME == 'master'
         }
+      }
+      steps {
+        sh('ln -s -f ./build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar /etc/init.d/memebot')
+        sh('service memebot start')
       }
     }
   }
