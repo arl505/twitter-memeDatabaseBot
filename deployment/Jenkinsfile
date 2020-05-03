@@ -10,12 +10,12 @@ pipeline {
     stage('Deploy') {
       when {
         expression {
-           env.BRANCH_NAME == 'master'
+           env.BRANCH_NAME == 'master' || true
         }
       }
       steps {
-        sh('ln -s -f ./build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar /etc/init.d/memebot')
-        sh('service memebot start')
+        sh('cp ./build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar /writeToFolder')
+        sh('systemctl restart memebot')
       }
     }
   }
