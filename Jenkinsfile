@@ -5,7 +5,7 @@ pipeline {
     stage('Build and Test') {
       steps {
         sh('./gradlew clean build')
-        echo env
+        echo env 
         sh('printenv')
       }
     }
