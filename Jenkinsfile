@@ -7,9 +7,5 @@ pipeline {
         sh('./gradlew clean build')
       }
     }
-    stage('Deploy') {
-      steps {
-      }
-    }
   }
 }
