@@ -8,7 +8,6 @@ pipeline {
       }
     stage('Deploy') {
       steps {
-        sh(java -jar build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar')
       }
    }
   }
