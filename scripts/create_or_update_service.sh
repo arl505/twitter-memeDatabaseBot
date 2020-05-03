@@ -1,1 +1,1 @@
-ln -s -f /var/cdk-app/cdk-manual-test-spring-boot-0.1.jar /etc/init.d/cdk-app
+ln -s -f /writeToFolder/memedatabasebot-0.0.1-SNAPSHOT.jar /etc/init.d/memeDatabaseBot
