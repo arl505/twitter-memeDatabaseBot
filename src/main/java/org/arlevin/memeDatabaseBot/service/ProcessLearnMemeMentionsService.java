@@ -232,7 +232,7 @@ public class ProcessLearnMemeMentionsService {
   private void downloadFile(final String url, final String fileName) {
     final File file = new File(fileName);
     try {
-      if (!file.getParentFile().mkdirs() || file.createNewFile()) {
+      if (!file.getParentFile().mkdirs() || !file.createNewFile()) {
         log.error("Unable to create directory or file to download media into");
       }
     } catch (IOException e) {
