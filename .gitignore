@@ -42,3 +42,4 @@ application.yml
 application-local.yml
 application-prod.yml
 memebot.service
+/ memebot.service
