@@ -41,7 +41,7 @@ public class CheckForNewMentionsService {
   @Scheduled(fixedRate = 15000)
   public void checkForNewMentions() {
     if(connectToTwitter) {
-      log.info("Checking for NEW mentions...");
+      log.info("Checking for new mentions...");
 
       final Map<String, String> signatureParams = new HashMap<>();
       signatureParams.put("tweet_mode", "extended");
