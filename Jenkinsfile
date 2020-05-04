@@ -10,7 +10,7 @@ pipeline {
     stage('Deploy') {
       when {
         expression {
-           env.BRANCH_NAME == 'master' || true
+           env.BRANCH_NAME == 'master'
         }
       }
       steps {
