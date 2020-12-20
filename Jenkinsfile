@@ -14,7 +14,7 @@ pipeline {
         }
       }
       steps {
-        sh('cp ./build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar /home/jenkins-able/backends/memebot/')
+        sh('cp ./build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar /home/sftp-able/backends/memebot/')
         sh('systemctl restart memebot')
       }
     }
