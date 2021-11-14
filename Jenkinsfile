@@ -2,9 +2,9 @@ pipeline {
   agent any
 
   stages {
-    stage('Build') {
+    stage('Build & Test') {
       steps {
-        sh('./gradlew clean build -x test')
+        sh('./gradlew clean build')
       }
     }
     stage('Deploy') {
@@ -14,7 +14,7 @@ pipeline {
         }
       }
       steps {
-        sh('cp ./build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar /home/sftp-able/backends/memebot/')
+        sh('cp ./build/libs/memedatabasebot-0.0.1-SNAPSHOT.jar /home/projects/memebot/')
         sh('systemctl restart memebot')
       }
     }
